@@ -3,6 +3,9 @@ import os
 from os import environ as env
 import json
 
+from anki_packager.packager.deck import AnkiDeckCreator
+from anki_packager.dict.ecdict import Ecdit
+
 
 def main():
     parser = argparse.ArgumentParser()
@@ -85,7 +88,13 @@ def main():
     #     ANKI_TEMPLATE = anki_data["ANKI_TEMPLATE"]
 
     # 4. vocabulary.txt
-    # with open(os.path.join(config_path, "vocabulary.txt"), "r") as vocab:
+    words = []
+    with open(os.path.join(config_path, "vocabulary.txt"), "r") as vocab:
+        for line in vocab:
+            line = line.strip()
+            if line and not line.startswith("#"):
+                words.append(line)
+    return words
 
     # set AI-related configrations if AI enabled
     if options.disable_ai is False:
@@ -115,6 +124,28 @@ def main():
 
         if API_BASE is None:
             API_BASE = options.api_base
+
+    # create deck
+    deck = AnkiDeckCreator(
+        deck_name="test",
+    )
+
+    for word in words:
+        data = {
+            "word": "",
+            "pronunciation": "",
+            "image": "",
+            "examples": "",
+            "dict_def": "",
+            "ai_explanation": "",
+            "youdao_explanation": "",
+        }
+
+        data["dict_def"] = Ecdit.ret_word(word)
+
+        deck.add_note(data)
+
+    vocab.close()
 
 
 if __name__ == "__main__":
