@@ -62,5 +62,6 @@ class AnkiDeckCreator:
         )
         self.note.add_note(note)
 
-    def write_to_file(self, file_path: str):
+    def write_to_file(self, file_path: str, mp3_files: str):
+        genanki.Package(self.deck).media_files = mp3_files
         genanki.Package(self.deck).write_to_file(file_path)

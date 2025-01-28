@@ -3,8 +3,17 @@ import os
 from os import environ as env
 import json
 
+
+### AI
+from anki_packager.ai.gpt import ChatGPT
+from anki_packager.ai.gemini import Gemini
+
+### Dictionaries
+from anki_packager.dict.youdao import YoudaoScraper
+from anki_packager.dict.ecdict import Ecdict
+
+### Anki
 from anki_packager.packager.deck import AnkiDeckCreator
-from anki_packager.dict.ecdict import Ecdit
 
 
 def main():
@@ -49,7 +58,7 @@ def main():
 
     options = parser.parse_args()
 
-    ## set config according to config directory or parsed arguments
+    ### set config according to config directory or parsed arguments
 
     # if no arguments, print help
     if not any(vars(options).values()):
@@ -67,7 +76,7 @@ def main():
         exit(0)
 
     config_path = os.path.join(os.getcwd(), "config")
-    # 1. ai-related: config.json
+    ## 1. ai-related: config.json
     with open(os.path.join(config_path, "config.json"), "r") as ai_cfg:
         ai_data = json.load(ai_cfg)
         API_KEY = ai_data["API_KEY"]
@@ -76,25 +85,16 @@ def main():
         MODEl = ai_data["MODEL"]
     ai_cfg.close()
 
-    # 2. prompt-related: prompt.json
+    ## 2. prompt-related: prompt.json
     with open(os.path.join(config_path, "prompt.json"), "r") as prompt_cfg:
         prompt_data = json.load(prompt_cfg)
         PROMPT = prompt_data["PROMPT"]
     prompt_cfg.close()
 
-    # # 3. anki-related: anki_template.json
+    ## 3. anki-related: anki_template.json
     # with open(os.path.join(config_path, "anki_template.json"), "r") as anki_cfg:
     #     anki_data = json.load(anki_cfg)
     #     ANKI_TEMPLATE = anki_data["ANKI_TEMPLATE"]
-
-    # 4. vocabulary.txt
-    words = []
-    with open(os.path.join(config_path, "vocabulary.txt"), "r") as vocab:
-        for line in vocab:
-            line = line.strip()
-            if line and not line.startswith("#"):
-                words.append(line)
-    return words
 
     # set AI-related configrations if AI enabled
     if options.disable_ai is False:
@@ -125,27 +125,68 @@ def main():
         if API_BASE is None:
             API_BASE = options.api_base
 
-    # create deck
-    deck = AnkiDeckCreator(
-        deck_name="test",
-    )
+    words = []
+    audio_files = []
+    data = {}
+    ai = None
 
-    for word in words:
-        data = {
-            "word": "",
-            "pronunciation": "",
-            "image": "",
-            "examples": "",
-            "dict_def": "",
-            "ai_explanation": "",
-            "youdao_explanation": "",
-        }
+    anki = AnkiDeckCreator("Test")
+    ecdict = Ecdict()
+    youdao = YoudaoScraper()
 
-        data["dict_def"] = Ecdit.ret_word(word)
+    if MODEL == "gemini":
+        ai = Gemini(API_KEY, API_BASE)
+    elif MODEL in ["openai", "gpt4o"]:
+        ai = ChatGPT(API_KEY, API_BASE)
 
-        deck.add_note(data)
-
+    ## 4. vocabulary.txt
+    with open(os.path.join(config_path, "vocabulary.txt"), "r") as vocab:
+        try:
+            for word in vocab:
+                words.append(word.strip())
+        except FileNotFoundError:
+            print("vocabulary.txt not found")
+        except Exception as e:
+            print(e)
     vocab.close()
+
+    """
+    data: dict[str, str] = {
+        "word": word,
+        "pronunciation": pronunciation,
+        "image": image,
+        "examples": examples,
+        "dict_def": dict_def,
+        "ai_explanation": ai_explanation,
+        "youdao_explanation": youdao_explanation,
+    }
+    """
+    for word in words:
+        data["word"] = word
+
+        # gtts pronunciation
+        audio = youdao._get_audio(word)
+        audio_files.append(audio)
+        data["pronunciation"] = audio
+
+        # TODO: image
+
+        # TODO: examples
+
+        # ecdict definition
+        data["dict_def"] = ecdict.ret_word(word)
+
+        # TODO: ai_explanation
+
+        # TODO: youdao_explanation
+
+        anki.add_note(data)
+
+    anki.write_to_file("test.apkg", audio_files)
+
+    # cleanup
+    youdao._clean_audio()
+    ecdict.__del__()
 
 
 if __name__ == "__main__":
