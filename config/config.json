@@ -1,5 +1,6 @@
 {
   "API_KEY": "",
   "API_BASE": "",
-  "MODEL": ""
+  "MODEL": "",
+  "PROXY": "127.0.0.1:7890"
 }

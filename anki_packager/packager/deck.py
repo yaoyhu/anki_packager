@@ -3,47 +3,112 @@ import random
 
 
 class AnkiDeckCreator:
-    def __init__(self, deck_name: str, deck_id: int, model: genanki.Model, notes: list):
+    def __init__(self, deck_name: str):
         self.deck_id = random.randrange(1 << 30, 1 << 31)
         self.model_id = random.randrange(1 << 30, 1 << 31)
+        self.deck = genanki.Deck(self.deck_id, deck_name)
         self.model = genanki.Model(
             self.model_id,
             "Simple Model",
+            # Great template: https://skywind.me/blog/archives/2949
             fields=[
-                {"name": "Word"},
-                {"name": "Pronunciation"},
-                {"name": "Image"},
-                {"name": "Examples"},  # Youdao examples without translation
-                {"name": "DictDef"},  # ECDICT definition
-                {"name": "AIExplanation"},  # AI generated explanation
-                {"name": "YoudaoExplanation"},  # Youdao translation and notes
+                {"name": "Word"},  # 词头
+                {"name": "Pronunciation"},  # 音标
+                {"name": "ECDict"},  # Ecdict解释+考试大纲
+                {"name": "Youdao"},  # 有道词典
+                {"name": "AI"},  # AI助记
+                {"name": "Longman"},  # Longman双解
+                {"name": "Discrimination"},  # 近义词、同义词
             ],
             templates=[
                 {
                     "name": "Word Card",
                     "qfmt": """
-                    <div class="word">{{Word}}</div>
-                    <div class="pronunciation">{{Pronunciation}}</div>
-                    {{#Image}}<div class="image">{{Image}}</div>{{/Image}}
-                    <div class="examples">{{Examples}}</div>
+                    <div class="card-front">
+                        <div class="word">{{Word}}</div>
+                        <div class="pronunciation">{{Pronunciation}}</div>
+                    </div>
                 """,
                     "afmt": """
                     {{FrontSide}}
                     <hr id="answer">
-                    <div class="dict-def">{{DictDef}}</div>
-                    <div class="ai-explanation">{{AIExplanation}}</div>
-                    <div class="youdao">{{YoudaoExplanation}}</div>
+                    <div class="card-back">
+                        <div class="ecdict">{{ECDict}}</div>
+                        <div class="longman">{{Youdao}}</div>
+                        <div class="longman">{{Longman}}</div>
+                        <div class="ai">{{AI}}</div>
+                        <div class="discrimination">{{Discrimination}}</div>
+                    </div>
                 """,
                 }
             ],
             css="""
-                .word { font-size: 2em; font-weight: bold; }
-                .pronunciation { color: #666; margin-bottom: 1em; }
-                .image { max-width: 300px; margin: 1em 0; }
-                .examples { color: #333; font-style: italic; }
-                .dict-def { margin-top: 1em; }
-                .ai-explanation { margin-top: 1em; color: #2c5282; }
-                .youdao { margin-top: 1em; color: #445; }
+                .card {
+                    font-family: Arial, sans-serif;
+                    text-align: center;  /* Center all content */
+                    padding: 20px;
+                    max-width: 800px;
+                    margin: auto;
+                    background-color: #f8f9fa;
+                }
+                
+                /* Front side */
+                .card-front {
+                    margin-bottom: 20px;
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;  /* Center flexbox items */
+                }
+                .word {
+                    font-size: 2.5em;
+                    font-weight: bold;
+                    color: #2c3e50;
+                    margin-bottom: 10px;
+                }
+                .pronunciation {
+                    font-size: 1.2em;
+                    color: #7f8c8d;
+                    margin-bottom: 15px;
+                }
+                
+                /* Back side */
+                .card-back {
+                    margin-top: 20px;
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;  /* Center flexbox items */
+                }
+                .ecdict, .longman, .ai, .discrimination {
+                    width: 100%;  /* Full width for content */
+                    text-align: center;
+                    margin-bottom: 15px;
+                    padding: 10px;
+                    border-radius: 5px;
+                }
+                .ecdict {
+                    font-size: 1.1em;
+                    color: #2c3e50;
+                    line-height: 1.5;
+                }
+                .longman {
+                    color: #34495e;
+                    background: #ecf0f1;
+                }
+                .ai {
+                    color: #2980b9;
+                    background: #e8f4f8;
+                }
+                .discrimination {
+                    color: #27ae60;
+                    background: #e8f8f5;
+                }
+                
+                hr#answer {
+                    width: 80%;  /* Shorter line for better aesthetics */
+                    border: none;
+                    border-top: 2px solid #bdc3c7;
+                    margin: 20px auto;  /* Center the line */
+                }
             """,
         )
 
@@ -51,16 +116,16 @@ class AnkiDeckCreator:
         note = genanki.Note(
             model=self.model,
             fields=[
-                data["word"],
-                data["pronunciation"],
-                data["image"],
-                data["examples"],
-                data["dict_def"],
-                data["ai_explanation"],
-                data["youdao_explanation"],
+                str(data["Word"]),
+                str(data["Pronunciation"]),
+                str(data["ECDict"]),
+                str(data["Youdao"]),
+                str(data["AI"]),
+                str(data["Longman"]),
+                str(data["Discrimination"]),
             ],
         )
-        self.note.add_note(note)
+        self.deck.add_note(note)
 
     def write_to_file(self, file_path: str, mp3_files: str):
         genanki.Package(self.deck).media_files = mp3_files

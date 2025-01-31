@@ -86,44 +86,15 @@ def main():
     ai_cfg.close()
 
     ## 2. prompt-related: prompt.json
-    with open(os.path.join(config_path, "prompt.json"), "r") as prompt_cfg:
-        prompt_data = json.load(prompt_cfg)
-        PROMPT = prompt_data["PROMPT"]
-    prompt_cfg.close()
+    # with open(os.path.join(config_path, "prompt.json"), "r") as prompt_cfg:
+    #     prompt_data = json.load(prompt_cfg)
+    #     PROMPT = prompt_data["PROMPT"]
+    # prompt_cfg.close()
 
     ## 3. anki-related: anki_template.json
     # with open(os.path.join(config_path, "anki_template.json"), "r") as anki_cfg:
     #     anki_data = json.load(anki_cfg)
     #     ANKI_TEMPLATE = anki_data["ANKI_TEMPLATE"]
-
-    # set AI-related configrations if AI enabled
-    if options.disable_ai is False:
-        PROXY = options.proxy
-        if PROXY != "":
-            env["HTTP_PROXY"] = PROXY
-            env["HTTPS_PROXY"] = PROXY
-
-        if API_KEY is None:
-            if MODEl is None:
-                MODEL = options.model
-            if MODEL is None:
-                raise ValueError("Set AI model in config.json or --model")
-            if MODEl in ["openai", "gpt4o"]:
-                # walrus operator: set API_KEY if OPENAI_API_KEY is not None
-                if OPENAI_API_KEY := (options.openai_key or env.get("OPENAI_API_KEY")):
-                    API_KEY = OPENAI_API_KEY
-                else:
-                    raise ValueError("OPENAI API key is missing")
-            elif MODEL == "gemini":
-                if GEMINI_API_KEY := (options.gemini_key or env.get("GEMINI_API_KEY")):
-                    API_KEY = GEMINI_API_KEY
-                else:
-                    raise ValueError("Gemini API key is missing")
-            else:
-                API_KEY = ""
-
-        if API_BASE is None:
-            API_BASE = options.api_base
 
     words = []
     audio_files = []
@@ -134,10 +105,35 @@ def main():
     ecdict = Ecdict()
     youdao = YoudaoScraper()
 
-    if MODEL == "gemini":
-        ai = Gemini(API_KEY, API_BASE)
-    elif MODEL in ["openai", "gpt4o"]:
-        ai = ChatGPT(API_KEY, API_BASE)
+    # set AI-related configrations if AI enabled
+    if options.disable_ai is False:
+        PROXY = options.proxy
+        if PROXY != "":
+            env["HTTP_PROXY"] = PROXY
+            env["HTTPS_PROXY"] = PROXY
+
+        if API_KEY is None:
+            MODEL = MODEl or options.model
+            if MODEL is None:
+                raise ValueError("Set AI model in config.json or --model")
+            if MODEl in ["openai", "gpt4o"]:
+                # walrus operator: set API_KEY if OPENAI_API_KEY is not None
+                if OPENAI_API_KEY := (options.openai_key or env.get("OPENAI_API_KEY")):
+                    API_KEY = OPENAI_API_KEY
+                    ai = ChatGPT(API_KEY, API_BASE)
+                else:
+                    raise ValueError("OPENAI API key is missing")
+            elif MODEL == "gemini":
+                if GEMINI_API_KEY := (options.gemini_key or env.get("GEMINI_API_KEY")):
+                    API_KEY = GEMINI_API_KEY
+                    ai = Gemini(API_KEY, API_BASE)
+                else:
+                    raise ValueError("Gemini API key is missing")
+            else:
+                API_KEY = ""
+
+        if API_BASE is None:
+            API_BASE = options.api_base
 
     ## 4. vocabulary.txt
     with open(os.path.join(config_path, "vocabulary.txt"), "r") as vocab:
@@ -150,43 +146,76 @@ def main():
             print(e)
     vocab.close()
 
-    """
-    data: dict[str, str] = {
-        "word": word,
-        "pronunciation": pronunciation,
-        "image": image,
-        "examples": examples,
-        "dict_def": dict_def,
-        "ai_explanation": ai_explanation,
-        "youdao_explanation": youdao_explanation,
-    }
-    """
     for word in words:
-        data["word"] = word
+        # Initialize empty data dictionary for each word
+        data = {
+            "Word": word,
+            "Pronunciation": "",
+            "ECDict": "",
+            "Youdao": {
+                "examples_phrases": [],
+                "examples_sentences": [],
+            },
+            "AI": "",
+            "Longman": "",
+            "Discrimination": {
+                "synonyms": [],
+                "antonyms": [],
+            },
+        }
 
-        # gtts pronunciation
+        # Get audio pronunciation from gtts
         audio = youdao._get_audio(word)
-        audio_files.append(audio)
-        data["pronunciation"] = audio
+        if audio:
+            audio_files.append(audio)
+            data["Pronunciation"] = audio
 
-        # TODO: image
+        # Get ECDICT definition
+        dict_def = ecdict.ret_word(word)
+        if dict_def:
+            data["ECDict"] = dict_def
 
-        # TODO: examples
+        # Get Youdao dictionary information
+        youdao_result = youdao.get_word_info(word)
+        if youdao_result:
+            examples = {
+                "example_phrases": [],
+                "example_sentences": [],
+                "synonyms": [],
+                "antonyms": [],
+            }
+            if youdao_result.get("example_phrases"):
+                examples["example_phrases"] = youdao_result["example_phrases"]
+            if youdao_result.get("example_sentences"):
+                examples["example_sentences"] = youdao_result["example_sentences"]
+            # TODO: not finished yet!
+            if youdao_result.get("synonyms"):
+                examples["synonyms"] = youdao_result["synonyms"]
+            if youdao_result.get("antonyms"):
+                examples["antonyms"] = youdao_result["antonyms"]
+            data["Youdao"]["examples_phrases"] = examples["example_phrases"]
+            data["Youdao"]["examples_sentences"] = examples["example_sentences"]
+            data["Discrimination"]["synonyms"] = examples["synonyms"]
+            data["Discrimination"]["antonyms"] = examples["antonyms"]
 
-        # ecdict definition
-        data["dict_def"] = ecdict.ret_word(word)
+        # TODO: Get AI explanation if AI is enabled
+        # if ai is not None:
+        #     try:
+        #         ai_explanation = ai.explain(word)
+        #         data["ai_explanation"] = ai_explanation
+        #     except Exception as e:
+        #         print(f"Error getting AI explanation for {word}: {e}")
 
-        # TODO: ai_explanation
+        # TODO: Longman English explain
 
-        # TODO: youdao_explanation
-
+        # Add note to deck
         anki.add_note(data)
 
     anki.write_to_file("test.apkg", audio_files)
 
     # cleanup
-    youdao._clean_audio()
-    ecdict.__del__()
+    youdao._clean_audio(audio_files)
+    # ecdict.__del__()
 
 
 if __name__ == "__main__":
