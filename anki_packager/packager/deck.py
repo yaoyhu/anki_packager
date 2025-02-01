@@ -117,7 +117,7 @@ class AnkiDeckCreator:
             model=self.model,
             fields=[
                 str(data["Word"]),
-                str(data["Pronunciation"]),
+                f"[sound:{data['Pronunciation']}]",
                 str(data["ECDict"]),
                 str(data["Youdao"]),
                 str(data["AI"]),
@@ -128,5 +128,6 @@ class AnkiDeckCreator:
         self.deck.add_note(note)
 
     def write_to_file(self, file_path: str, mp3_files: str):
-        genanki.Package(self.deck).media_files = mp3_files
-        genanki.Package(self.deck).write_to_file(file_path)
+        package = genanki.Package(self.deck)
+        package.media_files = mp3_files
+        package.write_to_file(file_path)
