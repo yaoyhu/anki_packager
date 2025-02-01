@@ -153,8 +153,8 @@ def main():
             "Pronunciation": "",
             "ECDict": "",
             "Youdao": {
-                "examples_phrases": [],
-                "examples_sentences": [],
+                "example_phrases": [],
+                "example_sentences": [],
             },
             "AI": "",
             "Longman": "",
@@ -193,8 +193,8 @@ def main():
                 examples["synonyms"] = youdao_result["synonyms"]
             if youdao_result.get("antonyms"):
                 examples["antonyms"] = youdao_result["antonyms"]
-            data["Youdao"]["examples_phrases"] = examples["example_phrases"]
-            data["Youdao"]["examples_sentences"] = examples["example_sentences"]
+            data["Youdao"]["example_phrases"] = examples["example_phrases"]
+            data["Youdao"]["example_sentences"] = examples["example_sentences"]
             data["Discrimination"]["synonyms"] = examples["synonyms"]
             data["Discrimination"]["antonyms"] = examples["antonyms"]
 
