@@ -242,9 +242,9 @@ class AnkiDeckCreator:
                 # 有道词典示例短语和句子
                 str(self.format_youdao(data["Youdao"])),
                 # AI助记、词源
-                str(data["AI"]),
+                f"词源：{data['AI']['etymology']}<br>助记：{data['AI']['mnemonic']}",
                 # 近义词、同义词
-                str(data["Discrimination"]),
+                f"近义词：{data['Discrimination']['synonyms']}<br>同义词：{data['Discrimination']['antonyms']}",
             ],
         )
         self.deck.add_note(note)

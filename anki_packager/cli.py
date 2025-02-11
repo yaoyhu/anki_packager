@@ -61,9 +61,9 @@ def main():
     ### set config according to config directory or parsed arguments
 
     # if no arguments, print help
-    if not any(vars(options).values()):
-        parser.print_help()
-        exit(0)
+    # if not any(vars(options).values()):
+    #     parser.print_help()
+    #     exit(0)
 
     # only add word into vocabulary.txt line by line
     if options.word:
@@ -78,11 +78,11 @@ def main():
     config_path = os.path.join(os.getcwd(), "config")
     ## 1. ai-related: config.json
     with open(os.path.join(config_path, "config.json"), "r") as ai_cfg:
-        ai_data = json.load(ai_cfg)
-        API_KEY = ai_data["API_KEY"]
-        PROXY = ai_data["PROXY"]
-        API_BASE = ai_data["API_BASE"]
-        MODEl = ai_data["MODEL"]
+        ai_json = json.load(ai_cfg)
+        API_KEY = ai_json["API_KEY"]
+        PROXY = ai_json["PROXY"]
+        API_BASE = ai_json["API_BASE"]
+        MODEL = ai_json["MODEL"]
     ai_cfg.close()
 
     ## 2. prompt-related: prompt.json
@@ -112,15 +112,17 @@ def main():
             env["HTTP_PROXY"] = PROXY
             env["HTTPS_PROXY"] = PROXY
 
+        # get api key from cli based on the model
         if API_KEY is None:
-            MODEL = MODEl or options.model
+            # model must be valid
+            MODEL = MODEL or options.model
             if MODEL is None:
                 raise ValueError("Set AI model in config.json or --model")
-            if MODEl in ["openai", "gpt4o"]:
+            if MODEL in ["openai", "gpt-4o"]:
                 # walrus operator: set API_KEY if OPENAI_API_KEY is not None
                 if OPENAI_API_KEY := (options.openai_key or env.get("OPENAI_API_KEY")):
                     API_KEY = OPENAI_API_KEY
-                    ai = ChatGPT(API_KEY, API_BASE)
+                    ai = ChatGPT(MODEL, API_KEY, API_BASE)
                 else:
                     raise ValueError("OPENAI API key is missing")
             elif MODEL == "gemini":
@@ -131,6 +133,25 @@ def main():
                     raise ValueError("Gemini API key is missing")
             else:
                 API_KEY = ""
+        elif MODEL is not None:
+            # api key and model are all set in config.json
+            if MODEL in ["openai", "gpt-4o"]:
+                ai = ChatGPT(MODEL, API_KEY, API_BASE)
+            elif MODEL == "gemini":
+                ai = Gemini(API_KEY, API_BASE)
+            else:
+                raise ValueError("Invalid AI model")
+        else:
+            # api key is set in config.json, but model is not set
+            MODEL = options.model
+            if MODEL is None:
+                raise ValueError("Set AI model in config.json or --model")
+            if MODEL in ["openai", "gpt-4o"]:
+                ai = ChatGPT(MODEL, API_KEY, API_BASE)
+            elif MODEL == "gemini":
+                ai = Gemini(API_KEY, API_BASE)
+            else:
+                raise ValueError("Invalid AI model")
 
         if API_BASE is None:
             API_BASE = options.api_base
@@ -198,13 +219,16 @@ def main():
             data["Discrimination"]["synonyms"] = examples["synonyms"]
             data["Discrimination"]["antonyms"] = examples["antonyms"]
 
-        # TODO: Get AI explanation if AI is enabled
-        # if ai is not None:
-        #     try:
-        #         ai_explanation = ai.explain(word)
-        #         data["ai_explanation"] = ai_explanation
-        #     except Exception as e:
-        #         print(f"Error getting AI explanation for {word}: {e}")
+        # Get AI explanation if AI is enabled
+        if ai is not None:
+            try:
+                ai_explanation = ai.explain(word)
+                data["AI"] = ai_explanation["ai"]
+                # use ai explanation for synonyms and antonyms (for now maybe...)
+                data["Discrimination"]["synonyms"] = ai_explanation["synonyms"]
+                data["Discrimination"]["antonyms"] = ai_explanation["antonyms"]
+            except Exception as e:
+                print(f"Error getting AI explanation for {word}: {e}")
 
         # TODO: Longman English explain
 
