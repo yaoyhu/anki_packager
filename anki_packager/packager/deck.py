@@ -9,107 +9,141 @@ class AnkiDeckCreator:
         self.deck = genanki.Deck(self.deck_id, deck_name)
         self.model = genanki.Model(
             self.model_id,
-            "Simple Model",
-            # Great template: https://skywind.me/blog/archives/2949
+            "Test Model",
             fields=[
                 {"name": "Word"},  # 词头
-                {"name": "Pronunciation"},  # 音标
-                {"name": "Front"},
-                {"name": "ECDict"},  # Ecdict解释+考试大纲
-                {"name": "Youdao"},  # 有道词典
-                {"name": "AI"},  # AI助记
-                {"name": "Longman"},  # Longman双解
+                {"name": "Pronunciation"},  # 读音
+                {"name": "Front"},  # 音标 + 考试大纲
+                {"name": "ECDict"},  # Ecdict 中文解释
+                {"name": "Longman"},  # Longman
+                {"name": "Youdao"},  # 有道词典示例短语和句子
+                {"name": "AI"},  # AI助记、词源
                 {"name": "Discrimination"},  # 近义词、同义词
             ],
             templates=[
                 {
-                    "name": "Word Card",
+                    "name": "Dictionary Card",
                     "qfmt": """
-                    <div class="card-front">
-                        <div class="word">{{Word}}</div>
-                        <div class="pronunciation">{{Pronunciation}}</div>
-                        <div class="front">{{Front}}</div>
-                    </div>
-                """,
+                        <div class="card-front">
+                            <div class="header-center">
+                                <div class="word">{{Word}}</div>
+                                <div class="front">{{Front}}</div>
+                                <div class="pronunciation">[{{Pronunciation}}]</div>
+                            </div>
+                        </div>
+                    """,
                     "afmt": """
-                    {{FrontSide}}
-                    <hr id="answer">
-                    <div class="card-back">
-                        <div class="ecdict">{{ECDict}}</div>
-                        <div class="longman">{{Youdao}}</div>
-                        <div class="longman">{{Longman}}</div>
-                        <div class="ai">{{AI}}</div>
-                        <div class="discrimination">{{Discrimination}}</div>
-                    </div>
-                """,
+                        {{FrontSide}}
+                        <hr class="dashed">
+                        <div class="card-back">
+                            <div class="ecdict">{{ECDict}}</div>
+                            <hr class="dashed">
+                            <div class="longman">{{Longman}}</div>
+                            <hr class="dashed">
+                            <div class="examples">{{Youdao}}</div>
+                            <hr class="dashed">
+                            <div class="ai">{{AI}}</div>
+                            <hr class="dashed">
+                            <div class="discrimination">{{Discrimination}}</div>
+                        </div>
+                    """,
                 }
             ],
             css="""
                 .card {
                     font-family: Arial, sans-serif;
-                    text-align: center;  /* Center all content */
+                    text-align: left;
                     padding: 20px;
                     max-width: 800px;
                     margin: auto;
-                    background-color: #f8f9fa;
+                    background-color: white;
+                    line-height: 1.6;
+                }
+                
+                /* 虚线分隔符 */
+                .dashed {
+                    border: none;
+                    border-top: 1px dashed #99a;  /* 使用灰蓝色，更接近图片 */
+                    margin: 15px 0;
+                    width: 100%;
                 }
                 
                 /* Front side */
                 .card-front {
                     margin-bottom: 20px;
-                    display: flex;
-                    flex-direction: column;
-                    align-items: center;  /* Center flexbox items */
                 }
+                
+                /* Centered header section */
+                .header-center {
+                    text-align: center;
+                    margin-bottom: 20px;
+                }
+                
                 .word {
-                    font-size: 2.5em;
+                    font-size: 2.2em;
                     font-weight: bold;
-                    color: #2c3e50;
+                    color: #000;
+                    margin-bottom: 5px;
+                }
+                
+                .pronunciation {
+                    font-size: 1.1em;
+                    color: #0645AD;  /* Dictionary blue color */
                     margin-bottom: 10px;
                 }
-                .pronunciation {
-                    font-size: 1.2em;
-                    color: #7f8c8d;
+                
+                .front {
+                    color: #666;
                     margin-bottom: 15px;
+                    font-size: 0.90em;
                 }
                 
                 /* Back side */
                 .card-back {
                     margin-top: 20px;
-                    display: flex;
-                    flex-direction: column;
-                    align-items: center;  /* Center flexbox items */
-                }
-                .ecdict, .longman, .ai, .discrimination {
-                    width: 100%;  /* Full width for content */
-                    text-align: center;
-                    margin-bottom: 15px;
-                    padding: 10px;
-                    border-radius: 5px;
-                }
-                .ecdict {
-                    font-size: 1.1em;
-                    color: #2c3e50;
-                    line-height: 1.5;
-                }
-                .longman {
-                    color: #34495e;
-                    background: #ecf0f1;
-                }
-                .ai {
-                    color: #2980b9;
-                    background: #e8f4f8;
-                }
-                .discrimination {
-                    color: #27ae60;
-                    background: #e8f8f5;
                 }
                 
-                hr#answer {
-                    width: 80%;  /* Shorter line for better aesthetics */
-                    border: none;
-                    border-top: 2px solid #bdc3c7;
-                    margin: 20px auto;  /* Center the line */
+                .ecdict {
+                    margin: 15px 0;
+                    text-align: center;
+                }
+
+                .longman {
+                    margin: 15px 0;
+                }
+                
+                .examples {
+                    color: #2F4F4F;
+                    margin: 15px 0;
+                }
+                
+                .examples em {
+                    color: #0645AD;  /* Blue for highlighted terms */
+                    font-style: normal;
+                    font-weight: bold;
+                }
+                
+                .ai {
+                    color: #666;
+                    margin: 15px 0;
+                }
+                
+                .discrimination {
+                    color: #333;
+                    margin: 15px 0;
+                }
+                
+                /* Example sentences */
+                .example {
+                    color: #2F4F4F;
+                    margin-left: 20px;
+                    margin-bottom: 10px;
+                }
+                
+                /* Chinese text */
+                .chinese {
+                    color: #666;
+                    margin-left: 20px;
                 }
             """,
         )
@@ -195,13 +229,21 @@ class AnkiDeckCreator:
         note = genanki.Note(
             model=self.model,
             fields=[
+                # 词头
                 str(data["Word"]),
-                f"[sound:{data['Pronunciation']}]",
-                f'音标：[{data["ECDict"]["phonetic"]}]<br>考纲：{data["ECDict"]["tag"]}',
+                # 读音
+                f"sound:{data['Pronunciation']}",
+                # 音标 + 考试大纲
+                f"[{data['ECDict']['phonetic']}] ({data['ECDict']['tag']})",
+                # Ecdict 中文解释
                 self.format_pos(data["ECDict"]["translation"]),
-                str(self.format_youdao(data["Youdao"])),
-                str(data["AI"]),
+                # Longman
                 self.format_pos(data["ECDict"]["definition"]),
+                # 有道词典示例短语和句子
+                str(self.format_youdao(data["Youdao"])),
+                # AI助记、词源
+                str(data["AI"]),
+                # 近义词、同义词
                 str(data["Discrimination"]),
             ],
         )
