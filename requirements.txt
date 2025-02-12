@@ -1,0 +1,7 @@
+beautifulsoup4==4.7.1
+genanki==0.13.1
+gTTS==2.5.3
+openai==1.61.1
+protobuf==5.29.3
+Requests==2.32.3
+google.generativeai ==0.8.4
