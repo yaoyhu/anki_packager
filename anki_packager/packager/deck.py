@@ -242,7 +242,7 @@ class AnkiDeckCreator:
                 # 有道词典示例短语和句子
                 str(self.format_youdao(data["Youdao"])),
                 # AI助记、词源
-                f"词源：{data['AI']['etymology']}<br>助记：{data['AI']['mnemonic']}",
+                f"{data['AI']['etymology']}<br><br>{data['AI']['mnemonic']}",
                 # 近义词、同义词
                 f"近义词：{data['Discrimination']['synonyms']}<br>同义词：{data['Discrimination']['antonyms']}",
             ],

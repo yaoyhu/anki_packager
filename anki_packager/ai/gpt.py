@@ -1,6 +1,7 @@
 from typing import Dict
 import openai
 import json
+from anki_packager.prompt import prompts
 
 
 class ChatGPT:
@@ -9,24 +10,11 @@ class ChatGPT:
         self.client = openai.OpenAI(api_key=api_key, base_url=api_base)
 
     def explain(self, word: str) -> Dict[str, any]:
-        prompt = """You are a mnemonic word assistant. 
-                Each time I give you a word, you must strictly return a JSON response 
-                in the following format without any additional explanations or comments:
-                {
-                    "word": "<word>",
-                    "ai": {
-                        "etymology": "<A brief description of the word's origin, including its linguistic roots and historical evolution>",
-                        "mnemonic": "<A vivid association or memory trick to help remember the word's meaning>"
-                    }, 
-                    "synonyms": "<Chinese (English), Chinese (English), Chinese (English), ...>",
-                    "antonyms": "<Chinese (English), Chinese (English), Chinese (English), ...>"
-                }"""
-
         try:
             response = self.client.chat.completions.create(
                 model=self.model,
                 messages=[
-                    {"role": "system", "content": prompt},
+                    {"role": "system", "content": prompts["openai"]},
                     {"role": "user", "content": word},
                 ],
                 temperature=0.7,
