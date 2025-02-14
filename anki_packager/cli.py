@@ -5,8 +5,7 @@ import json
 
 
 ### AI
-from anki_packager.ai.gpt import ChatGPT
-from anki_packager.ai.gemini import Gemini
+from anki_packager.ai import MODEL_DICT
 
 ### Dictionaries
 from anki_packager.dict.youdao import YoudaoScraper
@@ -112,49 +111,42 @@ def main():
             env["HTTP_PROXY"] = PROXY
             env["HTTPS_PROXY"] = PROXY
 
-        # get api key from cli based on the model
+        # API_KEY in config.json not set, get key from cli based on the model
         if API_KEY is None:
             # model must be valid
             MODEL = MODEL or options.model
             if MODEL is None:
                 raise ValueError("Set AI model in config.json or --model")
-            if MODEL in ["openai", "gpt-4o"]:
+            if MODEL in ["gpt-4o"]:
                 # walrus operator: set API_KEY if OPENAI_API_KEY is not None
                 if OPENAI_API_KEY := (options.openai_key or env.get("OPENAI_API_KEY")):
                     API_KEY = OPENAI_API_KEY
-                    ai = ChatGPT(MODEL, API_KEY, API_BASE)
                 else:
                     raise ValueError("OPENAI API key is missing")
+            elif MODEL in ["deepseek-ai/DeepSeek-V2.5"]:
+                if DEEPSEEK_API_KEY := (
+                    options.deepseek_key or env.get("DEEPSEEK_API_KEY")
+                ):
+                    API_KEY = DEEPSEEK_API_KEY
+                else:
+                    raise ValueError("DeepSeek API key is missing")
+            # TODO: support gemini
             elif MODEL == "gemini":
                 if GEMINI_API_KEY := (options.gemini_key or env.get("GEMINI_API_KEY")):
                     API_KEY = GEMINI_API_KEY
-                    ai = Gemini(API_KEY, API_BASE)
                 else:
                     raise ValueError("Gemini API key is missing")
             else:
                 API_KEY = ""
-        elif MODEL is not None:
-            # api key and model are all set in config.json
-            if MODEL in ["openai", "gpt-4o"]:
-                ai = ChatGPT(MODEL, API_KEY, API_BASE)
-            elif MODEL == "gemini":
-                ai = Gemini(API_KEY, API_BASE)
-            else:
-                raise ValueError("Invalid AI model")
-        else:
+        elif MODEL is None:
             # api key is set in config.json, but model is not set
             MODEL = options.model
             if MODEL is None:
                 raise ValueError("Set AI model in config.json or --model")
-            if MODEL in ["openai", "gpt-4o"]:
-                ai = ChatGPT(MODEL, API_KEY, API_BASE)
-            elif MODEL == "gemini":
-                ai = Gemini(API_KEY, API_BASE)
-            else:
-                raise ValueError("Invalid AI model")
 
         if API_BASE is None:
             API_BASE = options.api_base
+        ai = MODEL_DICT[MODEL](MODEL, API_KEY, API_BASE)
 
     ## 4. vocabulary.txt
     with open(os.path.join(config_path, "vocabulary.txt"), "r") as vocab:
