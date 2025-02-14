@@ -247,6 +247,7 @@ fabric.properties
 # PyPI configuration file
 .pypirc
 
+.vscode
 .vscode/*
 !.vscode/settings.json
 !.vscode/tasks.json
@@ -259,3 +260,6 @@ fabric.properties
 
 # Built Visual Studio Code Extensions
 *.vsix
+
+# macOS shit
+.DS_Store
