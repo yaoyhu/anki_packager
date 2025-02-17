@@ -4,6 +4,10 @@ import sqlite3
 # https://github.com/skywind3000/ECDICT
 from anki_packager.dict.ECDICT import stardict
 
+# https://github.com/liuyug/mdict-utils
+from mdict_utils.reader import query
+from mdict_utils.utils import ElapsedTimer
+
 
 class Ecdict:
     def __init__(self):
@@ -44,10 +48,43 @@ class Ecdict:
         """
         data = self.sd.query(word)
 
-        # parse exchange and tag
-        data = self.parse_exchange(data)
+        # BUG: 很多动词也出现复数？？？
+        # data = self.parse_exchange(data)
+        # 考纲标签
         data = self.parse_tag(data)
+        # 释义分布
+        data = self.get_distribution(data)
+        # 词语辨析
+        data = self.get_diffrentiation(data)
         return data
+
+    def get_distribution(self, data):
+        """
+        Get word distribution from mdx dictionary
+
+        Demo:
+            释义：放弃(<font color=orangered>76%</font>)，抛弃(<font color=orangered>21%</font>)，放纵(<font color=orangered>3%</font>)<br>
+            <font color=gray >词性：动词(96%), 名词(4%)</font>
+        """
+        with ElapsedTimer(verbose=False):
+            mdx_path = os.path.join(
+                os.path.dirname(__file__), "../../dicts", "单词释义比例词典-带词性.mdx"
+            )
+            record = query(mdx_path, data["word"])
+            if record:
+                data["distribution"] = record
+            return data
+
+    def get_diffrentiation(self, data):
+        """[《有道词语辨析》加强版](https://skywind.me/blog/archives/2941)"""
+        with ElapsedTimer(verbose=False):
+            mdx_path = os.path.join(
+                os.path.dirname(__file__), "../../dicts", "有道词语辨析.mdx"
+            )
+            record = query(mdx_path, data["word"])
+            if record:
+                data["diffrentiation"] = record
+            return data
 
     def definition_newline(self, data):
         """Add newline to definition for each part-of-speech
@@ -98,6 +135,7 @@ class Ecdict:
             "ky": "考研",
             "ielts": "雅思",
             "toefl": "托福",
+            "gre": "GRE",
         }
 
         tags = text.split()
@@ -110,7 +148,7 @@ class Ecdict:
 
         Demo:
             Input: data["exchange"] = "s:tests/d:tested/i:testing/p:tested/3:tests"
-            Output: data["exchange"] = "复数：tests 过去式：tested 过去分词：tested 现在分词：testing 三单：tests"
+            Output: data["exchange"] = "复数:tests 过去式:tested 过去分词:tested 现在分词:testing 三单:tests"
         """
         text = data.get("exchange", "")
         if not text:
@@ -141,5 +179,5 @@ class Ecdict:
 
 if __name__ == "__main__":
     ecdict = Ecdict()
-    data = ecdict.ret_word("prate")
+    data = ecdict.ret_word("ram")
     print(data)

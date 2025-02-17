@@ -9,7 +9,7 @@ class AnkiDeckCreator:
         self.deck = genanki.Deck(self.deck_id, deck_name)
         self.model = genanki.Model(
             self.model_id,
-            "Test Model",
+            "Test",
             fields=[
                 {"name": "Word"},  # 词头
                 {"name": "Pronunciation"},  # 读音
@@ -18,7 +18,8 @@ class AnkiDeckCreator:
                 {"name": "Longman"},  # Longman
                 {"name": "Youdao"},  # 有道词典示例短语和句子
                 {"name": "AI"},  # AI助记、词源
-                {"name": "Discrimination"},  # 近义词、同义词
+                {"name": "Discrimination"},  # 辨析
+                {"name": "Story"},  # 故事
             ],
             templates=[
                 {
@@ -38,13 +39,15 @@ class AnkiDeckCreator:
                         <div class="card-back">
                             <div class="ecdict">{{ECDict}}</div>
                             <hr class="dashed">
-                            <div class="longman">{{Longman}}</div>
+                            <div class="ai">{{AI}}</div>
                             <hr class="dashed">
                             <div class="examples">{{Youdao}}</div>
                             <hr class="dashed">
-                            <div class="ai">{{AI}}</div>
-                            <hr class="dashed">
                             <div class="discrimination">{{Discrimination}}</div>
+                            <hr class="dashed">
+                            <div class="longman">{{Longman}}</div>
+                            <hr class="dashed">
+                            <div class="story">{{Story}}</div>
                         </div>
                     """,
                 }
@@ -164,8 +167,12 @@ class AnkiDeckCreator:
             ):
                 if current:
                     parts.append(" ".join(current))
+                # make part of speech bold, italic and red
+                word = f"<b><i><font color='red'>{word}</font></i></b>"
                 current = [word]
             else:
+                # make chinese translation purple
+                word = f"<font color='purple'>{word}</font>"
                 current.append(word)
 
         if current:
@@ -173,56 +180,37 @@ class AnkiDeckCreator:
 
         return "<br>".join(parts)
 
-    def format_youdao(self, data: dict) -> str:
-        """format youdao example_phrases and example_sentences
-        Demo:
-            'example_phrases': [
-            {'index': '1', 'english': 'environment variable', 'chinese': '环境变量 ; 访问所有环境变量'},
-            {'index': '2', 'english': 'Random Variable', 'chinese': '数  随机变量 ;  数  随机变数 ; 无规变量 ; 无规变数'},
-            {'index': '3', 'english': 'control variable', 'chinese': '自  控制变量 ; 控件变量 ; 控制变项'}],
+    def format_trans(self, translation: str, tense: str, distribution: str) -> str:
+        """Add tense and distribution of each word in Translation part"""
+        if not translation:
+            return ""
 
-            'example_sentences': [
-            {'index': '1', 'english': 'The drill has variable speed control.', 'chinese': '这钻机有变速控制。', 'source': '《牛津词典》'},
-            {'index': '2', 'english': 'The potassium content of foodstuffs is very variable.', 'chinese': '食品中钾的含量是多变的。', 'source': '《柯林斯英汉双解大词典》'},
-            {'index': '3', 'english': 'The temperature remained constant while pressure was a variable in the experiment.', 'chinese': '做这实验时温度保持不变，但压力可变。', 'source': '《牛津词典》'
-        Output:
-            短语:
-                1. environment variable 环境变量 ; 访问所有环境变量
-                2. Random Variable 数  随机变量 ;  数  随机变数 ; 无规变量 ; 无规变数
-                3. control variable 自  控制变量 ; 控件变量 ; 控制变项
-            例句:
-                1. The drill has variable speed control. 这钻机有变速控制。 (《牛津词典》)
-                2. The potassium content of foodstuffs is very variable. 食品中钾的含量是多变的。 (《柯林斯英汉双解大词典》)
-                3. The temperature remained constant while pressure was a variable in the experiment. 做这实验时温度保持不变，但压力可变。 (《牛津词典》)
-        """
+        return f"{translation}<br><br>{tense}<br><br>{distribution}"
+
+    def format_youdao(self, data: dict) -> str:
+        """format youdao example_phrases and example_sentences"""
         result = []
 
         # Format phrases if they exist
         if "example_phrases" in data and data["example_phrases"]:
-            result.append("短语:")
+            result.append("【短语】")
+            phrases = []
             for phrase in data["example_phrases"]:
-                formatted_phrase = (
-                    f"    {phrase['index']}. {phrase['english']} {phrase['chinese']}"
-                )
-                result.append(formatted_phrase)
+                formatted_phrase = f"<li><b><font color='brown'>{phrase['english']}</font></b> {phrase['chinese']}</li>"
+                phrases.append(formatted_phrase)
 
-        # Add blank line between phrases and sentences if both exist
-        if (
-            "example_phrases" in data
-            and data["example_phrases"]
-            and "example_sentences" in data
-            and data["example_sentences"]
-        ):
-            result.append("")
+            result.append("".join(phrases))
 
         # Format sentences if they exist
         if "example_sentences" in data and data["example_sentences"]:
-            result.append("例句:")
+            result.append("【例句】")
+            phrases = []
             for sentence in data["example_sentences"]:
-                formatted_sentence = f"    {sentence['index']}. {sentence['english']} {sentence['chinese']} ({sentence['source']})"
-                result.append(formatted_sentence)
+                formatted_sentence = f"<li><b><font color='brown'>{sentence['english']}</font></b> {sentence['chinese']}</li>"
+                phrases.append(formatted_sentence)
 
-        # Join all lines with <br> instead of newlines
+            result.append("".join(phrases))
+
         return "<br>".join(result)
 
     def add_note(self, data: dict[str, str]):
@@ -233,18 +221,26 @@ class AnkiDeckCreator:
                 str(data["Word"]),
                 # 读音
                 f"sound:{data['Pronunciation']}",
-                # 音标 + 考试大纲
-                f"[{data['ECDict']['phonetic']}] ({data['ECDict']['tag']})",
-                # Ecdict 中文解释
-                self.format_pos(data["ECDict"]["translation"]),
-                # Longman
-                self.format_pos(data["ECDict"]["definition"]),
+                # 音标 + 考试大纲 + 语料库词频: [ә'bændәn] (高考 四级 六级 考研 托福 GRE 2057/2182)
+                f"[<font color=blue>{data['ECDict']['phonetic']}</font>] ({data['ECDict']['tag']} {data['ECDict']['bnc']}/{data['ECDict']['frq']})",
+                # Ecdict 中文解释 + 时态 + 释义分布
+                self.format_trans(
+                    self.format_pos(data["ECDict"]["translation"]),
+                    data["AI"]["tenses"],
+                    data["ECDict"]["distribution"],
+                ),
+                # TODO ECDICT for now, will be implemented later
+                f"【英解】<br>{self.format_pos(data['ECDict']['definition'])}",
                 # 有道词典示例短语和句子
-                str(self.format_youdao(data["Youdao"])),
+                self.format_youdao(data["Youdao"]),
                 # AI助记、词源
-                f"{data['AI']['etymology']}<br><br>{data['AI']['mnemonic']}",
-                # 近义词、同义词
-                f"近义词：{data['Discrimination']['synonyms']}<br>同义词：{data['Discrimination']['antonyms']}",
+                f"【词源】<br>{data['AI']['origin']['etymology']}<br><br> \
+                【助记】<li>联想：{data['AI']['origin']['mnemonic']['associative']}</li>\
+                <li>谐音： {data['AI']['origin']['mnemonic']['homophone']}</li>",
+                # 词语辨析
+                f"【辨析】{data['ECDict']['diffrentiation']}",
+                # 故事
+                f"【故事】 {data['AI']['story']['english']}<br><br>{data['AI']['story']['chinese']}",
             ],
         )
         self.deck.add_note(note)

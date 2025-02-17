@@ -21,6 +21,8 @@ class ChatGPT:
                 max_tokens=500,
             )
             result = response.choices[0].message.content
+            if result.startswith("```json"):
+                result = result.replace("```json", "").replace("```", "")
             return json.loads(result)
         except Exception as e:
             return {"error": str(e)}

@@ -20,7 +20,7 @@ def main():
 
     parser.add_argument("--word", dest="word", type=str, help="word to add")
 
-    # option to disable AI: not recommended
+    # TODO: option to disable AI: not recommended
     parser.add_argument(
         "--disable_ai",
         dest="disable_ai",
@@ -111,7 +111,7 @@ def main():
             env["HTTP_PROXY"] = PROXY
             env["HTTPS_PROXY"] = PROXY
 
-        # API_KEY in config.json not set, get key from cli based on the model
+        ### API_KEY in config.json not set, get key from cli based on the model
         if API_KEY is None:
             # model must be valid
             MODEL = MODEL or options.model
@@ -130,16 +130,15 @@ def main():
                     API_KEY = DEEPSEEK_API_KEY
                 else:
                     raise ValueError("DeepSeek API key is missing")
-            # TODO: support gemini
-            elif MODEL == "gemini":
+            elif MODEL in ["gemini-2.0-flash"]:
                 if GEMINI_API_KEY := (options.gemini_key or env.get("GEMINI_API_KEY")):
                     API_KEY = GEMINI_API_KEY
                 else:
                     raise ValueError("Gemini API key is missing")
             else:
-                API_KEY = ""
+                raise ValueError("Invalid AI model")
         elif MODEL is None:
-            # api key is set in config.json, but model is not set
+            ### api key is set in config.json, but model is not set
             MODEL = options.model
             if MODEL is None:
                 raise ValueError("Set AI model in config.json or --model")
@@ -215,10 +214,7 @@ def main():
         if ai is not None:
             try:
                 ai_explanation = ai.explain(word)
-                data["AI"] = ai_explanation["ai"]
-                # use ai explanation for synonyms and antonyms (for now maybe...)
-                data["Discrimination"]["synonyms"] = ai_explanation["synonyms"]
-                data["Discrimination"]["antonyms"] = ai_explanation["antonyms"]
+                data["AI"] = ai_explanation
             except Exception as e:
                 print(f"Error getting AI explanation for {word}: {e}")
 

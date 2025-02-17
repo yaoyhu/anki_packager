@@ -2,10 +2,17 @@
 
 `anki_packager` 是一个自动化的 Anki 制卡工具，旨在帮助英语学习者高效地创建高质量的单词卡片，并生成可直接导入 Anki 的 `.apkg` 文件。
 
-卡片思想深邃、内涵丰富，包含以下信息：
+卡片内容思想深邃、内涵丰富，包含以下信息：
 
-- 正面：单词、发音（音频）、音标、考试大纲标签（如 中高考、CET4、CET6、GRE 等）
-- 背面：中文释义（来自 ECDICT）、英文释义（来自柯林斯词典）、例句（来自有道）、AI 辅助记忆（支持多种 AI 模型）、同义词/反义词
+- 正面：词头、发音、音标 + 考试大纲标签（如 中高考、CET4、CET6、GRE 等）
+- 背面：
+  - 释义：中文（ECDICT）、时态（AI）、释义和词性比例（[《有道词语辨析》加强版](https://skywind.me/blog/archives/2941)）
+  - AI 生成词根 + 辅助记忆（联想记忆 + 谐音记忆）
+  - 短语 + 例句（有道爬虫）
+  - 单词辨析（[单词释义比例词典](https://skywind.me/blog/archives/2938)）
+  - 英文释义（目前来自 ECDICT）+ AI 生成故事
+
+<img src="./images/背面.png" alt="背面 " style="zoom:50%;" />
 
 ## Usage
 
@@ -46,20 +53,21 @@ docker run --rm --name apkg --mount type=bind,source=$folder,target=/app/
 ```shell
 # 构建镜像 (只需执行一次)
 make build
-
 make run
 ```
 
 ## TODO
 
-- [ ] 集成单词释义比例词典
-- [ ] 近一步优化单词卡片 UI
+- [x] ~~集成单词释义比例词典~~
+- [x] 近一步优化单词卡片 UI
+- [ ] 支持更多 AI 接口：~~SiliconFlow~~、Gemini
 - [ ] 支持 Longman 词典
+- [ ] 训练现成的数据包发布 release
 - [ ] 从欧路词典导入生词
 - [ ] 开发 GUI
+- [ ] 发布到 PyPI
 
 ## Thanks
 
+- 感谢 [skywind](https://github.com/skywind3000) 开源的 [ECDICT](https://github.com/skywind3000/ECDICT) 以及其他词典项目，为本项目提供了丰富的词典资源。
 - 感谢 [yihong0618](https://github.com/yihong0618) 开源的众多优秀 Python 项目，从中获益良多。
-- 感谢 [skywind](https://github.com/skywind3000) 开源的 [ECDICT](https://github.com/skywind3000/ECDICT)
-
