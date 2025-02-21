@@ -10,6 +10,7 @@ from anki_packager.ai import MODEL_DICT
 ### Dictionaries
 from anki_packager.dict.youdao import YoudaoScraper
 from anki_packager.dict.ecdict import Ecdict
+from anki_packager.dict.eudic import EUDIC
 
 ### Anki
 from anki_packager.packager.deck import AnkiDeckCreator
@@ -26,6 +27,19 @@ def main():
         dest="disable_ai",
         action="store_true",
         help="Disable AI completions",
+    )
+
+    # ./prog --eudicid: run eudic.get_studylist()
+    parser.add_argument(
+        "--eudicid",
+        action="store_true",
+        help="Display EUDIC studylist by id",
+    )
+
+    parser.add_argument(
+        "--eudic",
+        action="store_true",
+        help="Use EUDIC book instead of vocabulary.txt",
     )
 
     parser.add_argument(
@@ -64,8 +78,26 @@ def main():
     #     parser.print_help()
     #     exit(0)
 
+    config_path = os.path.join(os.getcwd(), "config")
+    ## 1. read config.json
+    with open(os.path.join(config_path, "config.json"), "r") as ai_cfg:
+        cfg = json.load(ai_cfg)
+        API_KEY = cfg["API_KEY"]
+        PROXY = cfg["PROXY"]
+        API_BASE = cfg["API_BASE"]
+        MODEL = cfg["MODEL"]
+        EUDIC_TOKEN = cfg["EUDIC_TOKEN"]
+        EUDIC_ID = cfg["EUDIC_ID"]
+    ai_cfg.close()
+
+    # display eudict id only
+    if options.eudicid:
+        eudic = EUDIC(EUDIC_TOKEN, EUDIC_ID)
+        eudic.get_studylist()
+        exit(0)
+
     # only add word into vocabulary.txt line by line
-    if options.word:
+    elif options.word:
         WORD = options.word
         cwd = os.getcwd()
         vocab_path = os.path.join(cwd, "config", "vocabulary.txt")
@@ -73,16 +105,6 @@ def main():
             f.write(WORD + "\n")
         print(f"{WORD} added to v.txt")
         exit(0)
-
-    config_path = os.path.join(os.getcwd(), "config")
-    ## 1. ai-related: config.json
-    with open(os.path.join(config_path, "config.json"), "r") as ai_cfg:
-        ai_json = json.load(ai_cfg)
-        API_KEY = ai_json["API_KEY"]
-        PROXY = ai_json["PROXY"]
-        API_BASE = ai_json["API_BASE"]
-        MODEL = ai_json["MODEL"]
-    ai_cfg.close()
 
     ## 2. prompt-related: prompt.json
     # with open(os.path.join(config_path, "prompt.json"), "r") as prompt_cfg:
@@ -147,16 +169,22 @@ def main():
             API_BASE = options.api_base
         ai = MODEL_DICT[MODEL](MODEL, API_KEY, API_BASE)
 
-    ## 4. vocabulary.txt
-    with open(os.path.join(config_path, "vocabulary.txt"), "r") as vocab:
-        try:
-            for word in vocab:
-                words.append(word.strip())
-        except FileNotFoundError:
-            print("vocabulary.txt not found")
-        except Exception as e:
-            print(e)
-    vocab.close()
+    ## 4. vocabulary.txt or eudic data
+    if options.eudic:
+        eudic = EUDIC(EUDIC_TOKEN, EUDIC_ID)
+        eudic_words = eudic.get_words()["data"]
+        for word in eudic_words:
+            words.append(word["word"])
+    else:
+        with open(os.path.join(config_path, "vocabulary.txt"), "r") as vocab:
+            try:
+                for word in vocab:
+                    words.append(word.strip())
+            except FileNotFoundError:
+                print("vocabulary.txt not found")
+            except Exception as e:
+                print(e)
+        vocab.close()
 
     for word in words:
         # Initialize empty data dictionary for each word
