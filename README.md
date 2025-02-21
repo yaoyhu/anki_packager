@@ -4,8 +4,6 @@
 
 `anki_packager` 是一个自动化的 Anki 制卡工具，旨在帮助英语学习者高效地创建高质量的单词卡片，并生成可直接导入 Anki 的 `.apkg` 文件。
 
-<img src="./images/apkg.png" alt="背面 " style="zoom:20%;" />
-
 卡片内容思想深邃、内涵丰富，包含以下信息：
 
 - 正面：词头、发音、音标 + 考试大纲标签（如 中高考、CET4、CET6、GRE 等）
