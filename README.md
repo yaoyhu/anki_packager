@@ -1,6 +1,10 @@
 # anki_packager
 
+**注意：工具目前处于初期，难免存在 bug 且对新手不太友好，近期会不断改进代码和文档！**
+
 `anki_packager` 是一个自动化的 Anki 制卡工具，旨在帮助英语学习者高效地创建高质量的单词卡片，并生成可直接导入 Anki 的 `.apkg` 文件。
+
+<img src="./images/apkg.jpeg" alt="|150" style="zoom:25%;" />
 
 卡片内容思想深邃、内涵丰富，包含以下信息：
 
@@ -64,7 +68,7 @@ make run
 - [x] ~~集成单词释义比例词典~~
 - [x] ~~近一步优化单词卡片 UI~~
 - [x] ~~从欧路词典导入生词~~
-- [ ] 支持更多 AI 接口：~~SiliconFlow~~、Gemini
+- [x] ~~支持 SiliconFlow、Gemini~~
 - [ ] 支持 Longman 词典
 - [ ] 训练现成的数据包发布 release
 - [ ] 开发 GUI
