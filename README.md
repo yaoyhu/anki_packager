@@ -18,6 +18,20 @@
 
 ## Usage
 
+### config
+
+因为本项目包含子模块，克隆时请使用以下命令：
+
+```bash
+git clone --recursive https://github.com/yaoyhu/anki_packager.git
+```
+
+在使用 anki_packager 之前，你需要先进行配置。请在 `config/config.json` 文件中填写相关配置信息：
+
+1. 生词默认放在 `config/vocabulary.txt`
+2. 如果需要用 AI 必须配置 `API_KEY`、`MODEL`、`API_BASE`和 `PROXY`
+3. 如果需要使用欧路词典：先按照[欧陆官方获取](https://my.eudic.net/OpenAPI/Authorization) TOKEN，然后使用`python -m anki_packager --eudicid` 选择 ID 写入配置文件
+
 ### conda
 
 建议使用虚拟环境来隔离项目依赖。以下是使用 Conda 的示例：
@@ -35,6 +49,9 @@ python -m anki_packager -h
 
 # 从欧路词典生词本导出单词，生成卡片（需要先配置)
 python -m anki_packager --eudic
+
+# 从生词本读词生成卡片
+python -m anki_packager
 ```
 
 ### Docker
