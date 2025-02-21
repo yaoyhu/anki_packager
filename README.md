@@ -30,6 +30,9 @@ pip install -r requirements.txt
 
 # 查看帮助信息
 python -m anki_packager -h
+
+# 从欧路词典生词本导出单词，生成卡片（需要先配置)
+python -m anki_packager --eudic
 ```
 
 ### Docker
@@ -59,11 +62,11 @@ make run
 ## TODO
 
 - [x] ~~集成单词释义比例词典~~
-- [x] 近一步优化单词卡片 UI
+- [x] ~~近一步优化单词卡片 UI~~
+- [x] ~~从欧路词典导入生词~~
 - [ ] 支持更多 AI 接口：~~SiliconFlow~~、Gemini
 - [ ] 支持 Longman 词典
 - [ ] 训练现成的数据包发布 release
-- [ ] 从欧路词典导入生词
 - [ ] 开发 GUI
 - [ ] 发布到 PyPI
 
