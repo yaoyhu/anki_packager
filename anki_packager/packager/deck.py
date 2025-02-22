@@ -218,29 +218,29 @@ class AnkiDeckCreator:
             model=self.model,
             fields=[
                 # 词头
-                str(data["Word"]),
+                data.get("Word", ""),
                 # 读音
-                f"sound:{data['Pronunciation']}",
+                f"sound:{data.get('Pronunciation', '')}",
                 # 音标 + 考试大纲 + 语料库词频: [ә'bændәn] (高考 四级 六级 考研 托福 GRE 2057/2182)
-                f"[<font color=blue>{data['ECDict']['phonetic']}</font>] ({data['ECDict']['tag']} {data['ECDict']['bnc']}/{data['ECDict']['frq']})",
+                f"[<font color=blue>{data.get('ECDict', {}).get('phonetic', '')}</font>] ({data.get('ECDict', {}).get('tag', '')} {data.get('ECDict', {}).get('bnc', '')}/{data.get('ECDict', {}).get('frq', '')})",
                 # Ecdict 中文解释 + 时态 + 释义分布
                 self.format_trans(
-                    self.format_pos(data["ECDict"]["translation"]),
-                    data["AI"]["tenses"],
-                    data["ECDict"]["distribution"],
+                    self.format_pos(data.get("ECDict", {}).get("translation", "")),
+                    data.get("AI", {}).get("tenses", ""),
+                    data.get("ECDict", {}).get("distribution", ""),
                 ),
                 # TODO ECDICT for now, will be implemented later
-                f"【英解】<br>{self.format_pos(data['ECDict']['definition'])}",
+                f"【英解】<br>{self.format_pos(data.get('ECDict', {}).get('definition', ''))}",
                 # 有道词典示例短语和句子
-                self.format_youdao(data["Youdao"]),
+                self.format_youdao(data.get("Youdao", {})),
                 # AI助记、词源
-                f"【词源】<br>{data['AI']['origin']['etymology']}<br><br> \
-                【助记】<li>联想：{data['AI']['origin']['mnemonic']['associative']}</li>\
-                <li>谐音： {data['AI']['origin']['mnemonic']['homophone']}</li>",
+                f"【词源】<br>{data.get('AI', {}).get('origin', {}).get('etymology', '')}<br><br> \
+                【助记】<li>联想：{data.get('AI', {}).get('origin', {}).get('mnemonic', {}).get('associative', '')}</li>\
+                <li>谐音： {data.get('AI', {}).get('origin', {}).get('mnemonic', {}).get('homophone', '')}</li>",
                 # 词语辨析
-                f"【辨析】{data['ECDict']['diffrentiation']}",
+                f"【辨析】{data.get('ECDict', {}).get('diffrentiation', '')}",
                 # 故事
-                f"【故事】 {data['AI']['story']['english']}<br><br>{data['AI']['story']['chinese']}",
+                f"【故事】 {data.get('AI', {}).get('story', {}).get('english', '')}<br><br>{data.get('AI', {}).get('story', {}).get('chinese', '')}",
             ],
         )
         self.deck.add_note(note)
