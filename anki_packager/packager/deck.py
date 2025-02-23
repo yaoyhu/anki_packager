@@ -234,7 +234,9 @@ class AnkiDeckCreator:
                 # 有道词典示例短语和句子
                 self.format_youdao(data.get("Youdao", {})),
                 # AI助记、词源
-                f"【词源】<br>{data.get('AI', {}).get('origin', {}).get('etymology', '')}<br><br> \
+                ""
+                if not data.get("AI")
+                else f"【词源】<br>{data.get('AI', {}).get('origin', {}).get('etymology', '')}<br><br> \
                 【助记】<li>联想：{data.get('AI', {}).get('origin', {}).get('mnemonic', {}).get('associative', '')}</li>\
                 <li>谐音： {data.get('AI', {}).get('origin', {}).get('mnemonic', {}).get('homophone', '')}</li>",
                 # 词语辨析

@@ -21,7 +21,6 @@ def main():
 
     parser.add_argument("--word", dest="word", type=str, help="word to add")
 
-    # TODO: option to disable AI: not recommended
     parser.add_argument(
         "--disable_ai",
         dest="disable_ai",
@@ -245,6 +244,8 @@ def main():
                 data["AI"] = ai_explanation
             except Exception as e:
                 print(f"Error getting AI explanation for {word}: {e}")
+        else:
+            data["AI"] = {}
 
         # TODO: Longman English explain
 
