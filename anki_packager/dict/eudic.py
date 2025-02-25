@@ -1,4 +1,6 @@
 import requests
+from anki_packager.logger import logger
+
 
 # https://my.eudic.net/OpenAPI/doc_api_study#-studylistapi-getcategory
 
@@ -24,7 +26,7 @@ class EUDIC:
 
         # show list id
         for book in response.json()["data"]:
-            print("id:", book["id"], "name:", book["name"])
+            logger.info("id:", book["id"], "name:", book["name"])
 
         return response.json()
 
@@ -37,8 +39,10 @@ class EUDIC:
     def check_token(self, status_code: int):
         if status_code != 200:
             if status_code == 401:
-                raise Exception(
-                    "前往 https://my.eudic.net/OpenAPI/Authorization 获取 token 写入配置文件"
-                )
+                msg = "前往 https://my.eudic.net/OpenAPI/Authorization 获取 token 写入配置文件"
+                logger.error(msg)
+                exit(1)
             else:
-                raise Exception("检查填写的 ID 是否正确")
+                msg = "检查填写的 ID 是否正确"
+                logger.error(msg)
+                exit(1)

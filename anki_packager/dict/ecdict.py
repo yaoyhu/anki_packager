@@ -48,8 +48,6 @@ class Ecdict:
         """
         data = self.sd.query(word)
 
-        # BUG: 很多动词也出现复数？？？
-        # data = self.parse_exchange(data)
         # 考纲标签
         data = self.parse_tag(data)
         # 释义分布

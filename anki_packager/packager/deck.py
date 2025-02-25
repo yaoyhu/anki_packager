@@ -4,6 +4,7 @@ import random
 
 class AnkiDeckCreator:
     def __init__(self, deck_name: str):
+        self.added = False
         self.deck_id = random.randrange(1 << 30, 1 << 31)
         self.model_id = random.randrange(1 << 30, 1 << 31)
         self.deck = genanki.Deck(self.deck_id, deck_name)
@@ -246,6 +247,7 @@ class AnkiDeckCreator:
             ],
         )
         self.deck.add_note(note)
+        self.added = True
 
     def write_to_file(self, file_path: str, mp3_files: str):
         package = genanki.Package(self.deck)

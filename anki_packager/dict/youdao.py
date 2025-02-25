@@ -3,7 +3,8 @@ import re
 import requests
 from gtts import gTTS
 from bs4 import BeautifulSoup
-from typing import Dict, List, Optional
+from typing import Dict, Optional
+from anki_packager.logger import logger
 
 
 class YoudaoScraper:
@@ -25,7 +26,7 @@ class YoudaoScraper:
             try:
                 os.remove(file)
             except OSError as e:
-                print(f"Error deleting {file}: {e}")
+                logger.error(f"Error deleting {file}: {e}")
 
     def get_word_info(self, word: str) -> Optional[Dict]:
         try:
@@ -38,13 +39,9 @@ class YoudaoScraper:
 
             result = {
                 "word": word,
-                "synonyms": [],
-                "antonyms": [],
                 "example_phrases": [],
                 "example_sentences": [],
             }
-
-            # TODO: Extract synonyms and antonyms
 
             # Extract example phrases
             phrase_ul = soup.find_all("ul", class_="")[0]
@@ -116,10 +113,10 @@ class YoudaoScraper:
             return result
 
         except requests.exceptions.RequestException as e:
-            print(f"Request error: {e}")
+            logger.error(f"Request error: {e}")
             return None
         except Exception as e:
-            print(f"An error occurred: {e}")
+            logger.error(f"An error occurred: {e}")
             return None
 
 

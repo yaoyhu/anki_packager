@@ -3,6 +3,8 @@ import os
 from os import environ as env
 import json
 
+### logger
+from anki_packager.logger import logger
 
 ### AI
 from anki_packager.ai import MODEL_DICT
@@ -71,12 +73,6 @@ def main():
     options = parser.parse_args()
 
     ### set config according to config directory or parsed arguments
-
-    # if no arguments, print help
-    # if not any(vars(options).values()):
-    #     parser.print_help()
-    #     exit(0)
-
     config_path = os.path.join(os.getcwd(), "config")
     ## 1. read config.json
     with open(os.path.join(config_path, "config.json"), "r") as ai_cfg:
@@ -102,19 +98,8 @@ def main():
         vocab_path = os.path.join(cwd, "config", "vocabulary.txt")
         with open(vocab_path, "a") as f:
             f.write(WORD + "\n")
-        print(f"{WORD} added to v.txt")
+        logger.info(f"{WORD} added to vocabulary.txt")
         exit(0)
-
-    ## 2. prompt-related: prompt.json
-    # with open(os.path.join(config_path, "prompt.json"), "r") as prompt_cfg:
-    #     prompt_data = json.load(prompt_cfg)
-    #     PROMPT = prompt_data["PROMPT"]
-    # prompt_cfg.close()
-
-    ## 3. anki-related: anki_template.json
-    # with open(os.path.join(config_path, "anki_template.json"), "r") as anki_cfg:
-    #     anki_data = json.load(anki_cfg)
-    #     ANKI_TEMPLATE = anki_data["ANKI_TEMPLATE"]
 
     words = []
     audio_files = []
@@ -133,39 +118,46 @@ def main():
             env["HTTPS_PROXY"] = PROXY
 
         ### API_KEY in config.json not set, get key from cli based on the model
-        if API_KEY is None:
+        if not API_KEY:
             # model must be valid
             MODEL = MODEL or options.model
-            if MODEL is None:
-                raise ValueError("Set AI model in config.json or --model")
+            if not MODEL:
+                logger.error("Set AI model in config.json or --model")
+                exit(1)
             if MODEL in ["gpt-4o"]:
                 # walrus operator: set API_KEY if OPENAI_API_KEY is not None
                 if OPENAI_API_KEY := (options.openai_key or env.get("OPENAI_API_KEY")):
                     API_KEY = OPENAI_API_KEY
                 else:
-                    raise ValueError("OPENAI API key is missing")
+                    logger.error("OPENAI API key is missing")
+                    exit(1)
             elif MODEL in ["deepseek-ai/DeepSeek-V2.5"]:
                 if DEEPSEEK_API_KEY := (
                     options.deepseek_key or env.get("DEEPSEEK_API_KEY")
                 ):
                     API_KEY = DEEPSEEK_API_KEY
                 else:
-                    raise ValueError("DeepSeek API key is missing")
+                    logger.error("DeepSeek API key is missing")
+                    exit(1)
             elif MODEL in ["gemini-2.0-flash"]:
                 if GEMINI_API_KEY := (options.gemini_key or env.get("GEMINI_API_KEY")):
                     API_KEY = GEMINI_API_KEY
                 else:
-                    raise ValueError("Gemini API key is missing")
+                    logger.error("Gemini API key is missing")
+                    exit(1)
             else:
-                raise ValueError("Invalid AI model")
-        elif MODEL is None:
+                logger.error("Invalid AI model")
+                exit(1)
+        elif not MODEL:
             ### api key is set in config.json, but model is not set
             MODEL = options.model
-            if MODEL is None:
-                raise ValueError("Set AI model in config.json or --model")
+            if not MODEL:
+                logger.error("Set AI model in config.json or --model")
+                exit(1)
 
-        if API_BASE is None:
+        if not API_BASE:
             API_BASE = options.api_base
+
         ai = MODEL_DICT[MODEL](MODEL, API_KEY, API_BASE)
 
     ## 4. vocabulary.txt or eudic data
@@ -180,83 +172,100 @@ def main():
                 for word in vocab:
                     words.append(word.strip())
             except FileNotFoundError:
-                print("vocabulary.txt not found")
+                logger.error("vocabulary.txt not found")
+                exit(1)
             except Exception as e:
-                print(e)
+                logger.error(f"Error reading vocabulary.txt: {e}")
+                exit(1)
         vocab.close()
 
-    for word in words:
-        # Initialize empty data dictionary for each word
-        data = {
-            "Word": word,
-            "Pronunciation": "",
-            "ECDict": "",
-            "Youdao": {
-                "example_phrases": [],
-                "example_sentences": [],
-            },
-            "AI": "",
-            "Longman": "",
-            "Discrimination": {
-                "synonyms": [],
-                "antonyms": [],
-            },
-        }
-
-        # Get audio pronunciation from gtts
-        audio = youdao._get_audio(word)
-        if audio:
-            audio_files.append(audio)
-            data["Pronunciation"] = audio
-
-        # Get ECDICT definition
-        dict_def = ecdict.ret_word(word)
-        if dict_def:
-            data["ECDict"] = dict_def
-
-        # Get Youdao dictionary information
-        youdao_result = youdao.get_word_info(word)
-        if youdao_result:
-            examples = {
-                "example_phrases": [],
-                "example_sentences": [],
-                "synonyms": [],
-                "antonyms": [],
-            }
-            if youdao_result.get("example_phrases"):
-                examples["example_phrases"] = youdao_result["example_phrases"]
-            if youdao_result.get("example_sentences"):
-                examples["example_sentences"] = youdao_result["example_sentences"]
-            # TODO: not finished yet!
-            if youdao_result.get("synonyms"):
-                examples["synonyms"] = youdao_result["synonyms"]
-            if youdao_result.get("antonyms"):
-                examples["antonyms"] = youdao_result["antonyms"]
-            data["Youdao"]["example_phrases"] = examples["example_phrases"]
-            data["Youdao"]["example_sentences"] = examples["example_sentences"]
-            data["Discrimination"]["synonyms"] = examples["synonyms"]
-            data["Discrimination"]["antonyms"] = examples["antonyms"]
-
-        # Get AI explanation if AI is enabled
-        if ai is not None:
+    try:
+        for word in words:
             try:
-                ai_explanation = ai.explain(word)
-                data["AI"] = ai_explanation
+                # Initialize empty data dictionary for each word
+                data = {
+                    "Word": word,
+                    "Pronunciation": "",
+                    "ECDict": "",
+                    "Youdao": {
+                        "example_phrases": [],
+                        "example_sentences": [],
+                    },
+                    "AI": "",
+                    "Longman": "",
+                    "Discrimination": {
+                        "synonyms": [],
+                        "antonyms": [],
+                    },
+                    "Story": "",
+                }
+
+                # Get audio pronunciation from gtts
+                audio = youdao._get_audio(word)
+                if audio:
+                    audio_files.append(audio)
+                    data["Pronunciation"] = audio
+
+                # Get ECDICT definition
+                dict_def = ecdict.ret_word(word)
+                if dict_def:
+                    data["ECDict"] = dict_def
+
+                # Get Youdao dictionary information
+                youdao_result = youdao.get_word_info(word)
+                if youdao_result:
+                    examples = {
+                        "example_phrases": [],
+                        "example_sentences": [],
+                    }
+                    if youdao_result.get("example_phrases"):
+                        examples["example_phrases"] = youdao_result["example_phrases"]
+                    if youdao_result.get("example_sentences"):
+                        examples["example_sentences"] = youdao_result[
+                            "example_sentences"
+                        ]
+                    data["Youdao"]["example_phrases"] = examples["example_phrases"]
+                    data["Youdao"]["example_sentences"] = examples["example_sentences"]
+
+                # Get AI explanation if AI is enabled
+                if ai is not None:
+                    try:
+                        ai_explanation = ai.explain(word)
+                        data["AI"] = ai_explanation
+                    except Exception as e:
+                        logger.error(f"Error getting AI explanation for {word}: {e}")
+                else:
+                    data["AI"] = {}
+
+                # TODO: Longman English explain
+
+                # Add note to deck
+                anki.add_note(data)
+                logger.info(f"Word: \033[1;31m{word}\033[0m added...")
+
             except Exception as e:
-                print(f"Error getting AI explanation for {word}: {e}")
-        else:
-            data["AI"] = {}
+                logger.error(f"Error processing word '{word}': {e}")
+                # Continue with next word even if current one fails
+                continue
 
-        # TODO: Longman English explain
+    except Exception as e:
+        logger.error(f"Fatal error occurred: {e}")
 
-        # Add note to deck
-        anki.add_note(data)
+    finally:
+        try:
+            # Always try to save processed words and cleanup
+            if anki.added:  # Only save if there are any processed notes
+                logger.info("Saving processed words to Anki deck...")
+                anki.write_to_file("test.apkg", audio_files)
+        except Exception as e:
+            logger.error(f"Error saving Anki deck: {e}")
 
-    anki.write_to_file("test.apkg", audio_files)
-
-    # cleanup
-    youdao._clean_audio(audio_files)
-    # ecdict.__del__()
+        try:
+            # Always attempt to clean up audio files
+            logger.info("Cleaning up audio files...")
+            youdao._clean_audio(audio_files)
+        except Exception as e:
+            logger.error(f"Error cleaning up audio files: {e}")
 
 
 if __name__ == "__main__":
