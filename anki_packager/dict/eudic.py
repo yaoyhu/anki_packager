@@ -26,7 +26,7 @@ class EUDIC:
 
         # show list id
         for book in response.json()["data"]:
-            logger.info("id:", book["id"], "name:", book["name"])
+            logger.info(f"id: {book['id']}, name: {book['name']}")
 
         return response.json()
 
