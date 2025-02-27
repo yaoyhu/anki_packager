@@ -1,6 +1,8 @@
 import os
 import sqlite3
 
+from anki_packager.logger import logger
+
 # https://github.com/skywind3000/ECDICT
 from anki_packager.dict.ECDICT import stardict
 
@@ -12,9 +14,12 @@ from mdict_utils.utils import ElapsedTimer
 class Ecdict:
     def __init__(self):
         # ecdict path: ./ECDICT/
-        self.ecdict_path = os.path.join(os.path.dirname(__file__), "ECDICT")
-        self.csv = os.path.join(self.ecdict_path, "stardict.csv")
-        self.sqlite = os.path.join(self.ecdict_path, "stardict.db")
+        self.csv = os.path.join(
+            os.path.join(os.path.dirname(__file__), "ECDICT"), "stardict.csv"
+        )
+        # config path: project_root/dicts
+        self.config = os.path.join(os.path.dirname(__file__), "../../dicts")
+        self.sqlite = os.path.join(self.config, "stardict.db")
         self._convert()
         self.conn = sqlite3.connect(self.sqlite)
         self.cursor = self.conn.cursor()
@@ -27,6 +32,7 @@ class Ecdict:
 
     def _convert(self):
         if not os.path.exists(self.sqlite):
+            logger.info("首次使用：正在获取词典数据库（790M）")
             stardict.convert_dict(self.sqlite, self.csv)
 
     def ret_word(self, word):
