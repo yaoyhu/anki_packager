@@ -5,6 +5,7 @@ import random
 class AnkiDeckCreator:
     def __init__(self, deck_name: str):
         self.added = False
+        self.deck_name = deck_name
         self.deck_id = random.randrange(1 << 30, 1 << 31)
         self.model_id = random.randrange(1 << 30, 1 << 31)
         self.deck = genanki.Deck(self.deck_id, deck_name)
@@ -226,8 +227,8 @@ class AnkiDeckCreator:
                 f"[<font color=blue>{data.get('ECDict', {}).get('phonetic', '')}</font>] ({data.get('ECDict', {}).get('tag', '')} {data.get('ECDict', {}).get('bnc', '')}/{data.get('ECDict', {}).get('frq', '')})",
                 # Ecdict 中文解释 + 时态 + 释义分布
                 self.format_trans(
-                    self.format_pos(data.get("ECDict", {}).get("translation", "")),
                     data.get("AI", {}).get("tenses", ""),
+                    self.format_pos(data.get("ECDict", {}).get("translation", "")),
                     data.get("ECDict", {}).get("distribution", ""),
                 ),
                 # TODO ECDICT for now, will be implemented later
@@ -243,7 +244,9 @@ class AnkiDeckCreator:
                 # 词语辨析
                 f"【辨析】{data.get('ECDict', {}).get('diffrentiation', '')}",
                 # 故事
-                f"【故事】 {data.get('AI', {}).get('story', {}).get('english', '')}<br><br>{data.get('AI', {}).get('story', {}).get('chinese', '')}",
+                ""
+                if not data.get("AI")
+                else f"【故事】 {data.get('AI', {}).get('story', {}).get('english', '')}<br><br>{data.get('AI', {}).get('story', {}).get('chinese', '')}",
             ],
         )
         self.deck.add_note(note)
