@@ -84,6 +84,7 @@ def main():
         MODEL = cfg["MODEL"]
         EUDIC_TOKEN = cfg["EUDIC_TOKEN"]
         EUDIC_ID = cfg["EUDIC_ID"]
+        DECK_NAME = cfg["DECK_NAME"]
     ai_cfg.close()
     logger.info("配置读取完毕")
 
@@ -109,7 +110,7 @@ def main():
     data = {}
     ai = None
 
-    anki = AnkiDeckCreator("Test")
+    anki = AnkiDeckCreator(f"{DECK_NAME}")
     ecdict = Ecdict()
     youdao = YoudaoScraper()
 
