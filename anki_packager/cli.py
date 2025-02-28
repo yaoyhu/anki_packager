@@ -3,6 +3,7 @@ import os
 from os import environ as env
 import json
 from tqdm import tqdm
+import signal
 
 ### logger
 from anki_packager.logger import logger
@@ -17,6 +18,19 @@ from anki_packager.dict.eudic import EUDIC
 
 ### Anki
 from anki_packager.packager.deck import AnkiDeckCreator
+
+
+def create_signal_handler(anki, youdao, audio_files, DECK_NAME, pbar):
+    def signal_handler(sig, frame):
+        pbar.close()
+        logger.info("\033[1;31m程序被 <Ctrl-C> 异常中止...\033[0m")
+        logger.info("正在写入已处理完毕的卡片...")
+        anki.write_to_file(f"{DECK_NAME}.apkg", audio_files)
+        youdao._clean_temp_dir()
+        logger.info("正在退出...")
+        exit(0)
+
+    return signal_handler
 
 
 def main():
@@ -188,6 +202,10 @@ def main():
         vocab.close()
 
     pbar = tqdm(total=number_words, desc="开始处理")
+    signal.signal(
+        signal.SIGINT,
+        create_signal_handler(anki, youdao, audio_files, DECK_NAME, pbar),
+    )
 
     for word in words:
         try:
