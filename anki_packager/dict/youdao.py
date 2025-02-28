@@ -1,5 +1,7 @@
 import os
 import re
+import shutil
+import tempfile
 import requests
 from gtts import gTTS
 from bs4 import BeautifulSoup
@@ -13,20 +15,23 @@ class YoudaoScraper:
         self.headers = {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3"
         }
+        self.tmp = tempfile.mkdtemp()
 
-    # return the filename of the audio
     def _get_audio(self, word: str):
-        filename = f"{word}.mp3"
+        """return the filename of the audio and the temp directory that needs to be cleaned up"""
+        filename = os.path.join(self.tmp, f"{word}.mp3")
         tts = gTTS(text=word, lang="en")
         tts.save(filename)
         return filename
 
-    def _clean_audio(self, files):
-        for file in files:
-            try:
-                os.remove(file)
-            except OSError as e:
-                logger.error(f"Error deleting {file}: {e}")
+    def _clean_temp_dir(self):
+        """Clean up a temporary directory and its contents."""
+        try:
+            if os.path.exists(self.tmp):
+                shutil.rmtree(self.tmp)
+                logger.info(f"音频临时文件夹已清理: {self.tmp}")
+        except Exception as e:
+            logger.error(f"音频临时文件夹 {self.tmp} 清理失败: {e}")
 
     def get_word_info(self, word: str) -> Optional[Dict]:
         try:
