@@ -281,7 +281,7 @@ def main():
     try:
         if anki.added:
             anki.write_to_file(f"{DECK_NAME}.apkg", audio_files)
-            logger.info(f"卡片写入完毕，请打开{DECK_NAME}.apkg")
+            logger.info(f"卡片写入完毕，请打开 {DECK_NAME}.apkg")
     except Exception as e:
         logger.error(f"Error saving Anki deck: {e}")
     try:

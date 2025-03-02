@@ -184,8 +184,9 @@ class AnkiDeckCreator:
 
     def format_trans(self, translation: str, tense: str, distribution: str) -> str:
         """Add tense and distribution of each word in Translation part"""
-        if not translation:
-            return ""
+        if not tense:
+            # AI is disabled
+            return f"{translation}<br><br>{distribution}"
 
         return f"{translation}<br><br>{tense}<br><br>{distribution}"
 
@@ -225,11 +226,11 @@ class AnkiDeckCreator:
                 f"sound:{data.get('Pronunciation', '')}",
                 # 音标 + 考试大纲 + 语料库词频: [ә'bændәn] (高考 四级 六级 考研 托福 GRE 2057/2182)
                 f"[<font color=blue>{data.get('ECDict', {}).get('phonetic', '')}</font>] ({data.get('ECDict', {}).get('tag', '')} {data.get('ECDict', {}).get('bnc', '')}/{data.get('ECDict', {}).get('frq', '')})",
-                # Ecdict 中文解释 + 时态 + 释义分布
+                # Ecdict 中文解释 + 释义分布 + 时态
                 self.format_trans(
-                    data.get("AI", {}).get("tenses", ""),
                     self.format_pos(data.get("ECDict", {}).get("translation", "")),
                     data.get("ECDict", {}).get("distribution", ""),
+                    data.get("AI", {}).get("tenses", ""),
                 ),
                 # TODO ECDICT for now, will be implemented later
                 f"【英解】<br>{self.format_pos(data.get('ECDict', {}).get('definition', ''))}",
