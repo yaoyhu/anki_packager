@@ -10,4 +10,5 @@ logging.basicConfig(
     handlers=[logging.FileHandler("anki_packager.log"), logging.StreamHandler()],
 )
 
+logging.getLogger("httpx").setLevel(logging.WARNING)
 logger = logging.getLogger(__name__)
