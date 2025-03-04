@@ -14,11 +14,12 @@ from mdict_utils.utils import ElapsedTimer
 class Ecdict:
     def __init__(self):
         # ecdict path: ./ECDICT/
-        self.csv = os.path.join(
-            os.path.join(os.path.dirname(__file__), "ECDICT"), "stardict.csv"
+        self.sevenzip = os.path.join(
+            os.path.join(os.path.dirname(__file__), "ECDICT"), "stardict.7z"
         )
         # config path: project_root/dicts
         self.config = os.path.join(os.path.dirname(__file__), "../../dicts")
+        self.csv = os.path.join(self.config, "stardict.csv")
         self.sqlite = os.path.join(self.config, "stardict.db")
         self._convert()
         self.conn = sqlite3.connect(self.sqlite)
@@ -31,8 +32,22 @@ class Ecdict:
             self.conn.close()
 
     def _convert(self):
+        if not os.path.exists(self.csv):
+            # unzip stardict.csv in 7zip
+            if not os.path.exists(self.sevenzip):
+                raise FileNotFoundError(f"{self.sevenzip} 未找到!")
+
+            import py7zr
+
+            logger.info("首次使用：正在解压词典到 anki_packager/dicts/stardict.csv")
+            ar = py7zr.SevenZipFile(self.sevenzip, mode="r")
+            ar.extractall(path=self.config)
+            ar.close()
+
         if not os.path.exists(self.sqlite):
-            logger.info("首次使用：正在获取词典数据库（790M）")
+            logger.info(
+                "首次使用：正在获取词典数据库到 anki_packager/dicts/stardict.db（790M）"
+            )
             stardict.convert_dict(self.sqlite, self.csv)
 
     def ret_word(self, word):
@@ -179,9 +194,3 @@ class Ecdict:
 
         data["exchange"] = " ".join(result)
         return data
-
-
-if __name__ == "__main__":
-    ecdict = Ecdict()
-    data = ecdict.ret_word("ram")
-    print(data)
