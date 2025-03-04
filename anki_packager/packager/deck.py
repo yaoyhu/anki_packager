@@ -243,7 +243,9 @@ class AnkiDeckCreator:
                 【助记】<li>联想：{data.get('AI', {}).get('origin', {}).get('mnemonic', {}).get('associative', '')}</li>\
                 <li>谐音： {data.get('AI', {}).get('origin', {}).get('mnemonic', {}).get('homophone', '')}</li>",
                 # 词语辨析
-                f"【辨析】{data.get('ECDict', {}).get('diffrentiation', '')}",
+                ""
+                if not data.get("ECDict", {}).get("diffrentiation", "")
+                else f"【辨析】{data.get('ECDict', {}).get('diffrentiation', '')}",
                 # 故事
                 ""
                 if not data.get("AI")
