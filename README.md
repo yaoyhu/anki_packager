@@ -5,7 +5,7 @@
   <br>anki_packager
 </h1>
   <p align="center">
-    智能化 Anki 英语词汇卡片生成工具
+    自动化 Anki 英语单词高质量卡片生成工具
     <br />
     <a href="#关于项目">关于项目</a>
     ·
@@ -19,12 +19,11 @@
 
 ## 关于项目
 
-`anki_packager` 是一款智能化的 Anki 词汇卡片生成工具，能够自动创建高质量的 `.apkg` 格式单词卡片。本项目致力于为英语学习者提供一个高效、智能的记忆辅助工具。
+`anki_packager` 是一款智能化的 Anki 单词卡片生成工具，能够自动创建高质量的 `.apkg` 牌组。本项目致力于为英语学习者提供一个高效、智能的记忆辅助工具。
 
 ### 核心特性
 
 - 多源精选词典整合：[ECDICT](https://github.com/skywind3000/ECDICT)、[《有道词语辨析》加强版](https://skywind.me/blog/archives/2941)、[单词释义比例词典](https://skywind.me/blog/archives/2938)
-- 支持谷歌 TTS 发音、中英双解、考纲标记等功能
 - 智能化学习体验：
   - 自动抓取有道词典优质例句和常用短语
   - 支持谷歌 TTS 发音、中英双解、考纲标记等功能
