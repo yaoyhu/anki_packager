@@ -30,6 +30,7 @@
   - 支持流行 AI 模型（需要 API-KEY）对单词进行总结、助记及和情境故事生成
 - 便捷的数据导入：支持欧路词典生词本一键导入并批量处理单词列表，自动生成卡片
 - 优良的命令行体验：显示处理进度，支持记录错误、支持丰富的命令行参数
+- 支持 Docker 运行
 
 ### 卡片预览
 
@@ -82,28 +83,27 @@ python -m anki_packager -h
 # 从欧路词典生词本导出单词，生成卡片（需要先配置)
 python -m anki_packager --eudic
 
+# 关闭 AI 功能
+python -m anki_packager --disable_ai
+
 # 从生词本读词生成卡片
 python -m anki_packager
 ```
 
-#### 方式二：Docker 容器（有待重写）
+#### 方式二：Docker 容器
 
-如果你希望避免污染本地环境，可以使用 Docker 运行 anki_packager：
+如果你希望避免污染本地环境，可以使用 Docker 运行 anki_packager，可以配合 `Makefile` 使用：
 
 ```shell
-# 构建 Docker 镜像 (只需执行一次)
-docker build --tag apkg .
+# 构建 Docker 镜像 和 创建持久化卷
+make build
 
-# windows 用户
-$folder=yourfolderpath # $folder_path="C:\Users\user\mybook\"
-# linux/macos
-export folder=yourfolderpath # export folder_path="/home/user/mybook/"
+# 第一次运行容器下载词典（需要一点时间）
+make run
 
-docker run --rm --name apkg --mount type=bind,source=$folder,target=/app/
-
-# 使用 Makefile 简化命令（可选）
-make build  # 构建镜像
-make run    # 运行容器
+# 进入容器（注意！需要在主机先配置 config/config.json）
+# 在容器中运行 anki_packager，生成的牌组会保存在当前目录中
+make shell
 ```
 
 ## TODO
@@ -112,7 +112,7 @@ make run    # 运行容器
 - [x] ~~近一步优化单词卡片 UI~~
 - [x] ~~从欧路词典导入生词~~
 - [x] ~~支持 SiliconFlow、Gemini~~
-- [ ] 重新支持 Docker
+- [x] 重新支持 Docker
 - [ ] 发布到 PyPI
 - [ ] 支持更多软件生词导出
 - [ ] 支持 Longman 词典

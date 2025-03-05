@@ -10,32 +10,41 @@ else
     FOLDER_SET = export FOLDER=$$(pwd)
 endif
 
-IMAGE_NAME = apkg
-CONTAINER_NAME = apkg
+IMAGE_NAME = apkger
+CONTAINER_NAME = apkger
+VOLUME_NAME = apkger-dicts
 
-.PHONY: build run shell clean check_image
+.PHONY: build run shell clean help
 
-# Build Docker image
+# Build Docker image and create persistent volume
 build:
 	docker build -t $(IMAGE_NAME) .
+	docker volume create $(VOLUME_NAME)
 
-# Run container with mounted config
 run:
-	$(FOLDER_SET) && \
 	docker run --rm \
 		--name $(CONTAINER_NAME) \
-		--mount type=bind,source=$$FOLDER,target=/app \
+		-v $(VOLUME_NAME):/app/dicts \
 		$(IMAGE_NAME)
 
-# Enter shell in container
+# Enter shell in container with volume mounted
 shell:
-	docker run -it --rm\
+	docker run -it --rm \
 		--name $(CONTAINER_NAME) \
+		-v $(VOLUME_NAME):/app/dicts \
+		-v $(shell pwd)/config:/app/config \
+		-v $(shell pwd):/app \
 		--entrypoint /bin/bash \
 		$(IMAGE_NAME)
 
-# Clean up
 clean:
-	-docker stop $(CONTAINER_NAME)
-	-docker rm $(CONTAINER_NAME)
 	-docker rmi $(IMAGE_NAME)
+	-docker volume rm $(VOLUME_NAME)
+
+help:
+	@echo "Available targets:"
+	@echo "  build           - Build Docker image and create persistent volume"
+	@echo "  run             - Run container with mounted current directory"
+	@echo "  shell           - Enter shell in container with volume mounted"
+	@echo "  clean           - Remove container and image"
+	@echo "  help            - Show this help message"
