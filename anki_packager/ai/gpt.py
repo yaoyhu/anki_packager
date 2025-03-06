@@ -26,6 +26,6 @@ class ChatGPT:
                 result = result.replace("```json", "").replace("```", "")
             return json.loads(result)
         except Exception as e:
-            error_msg = f"Failed to get Gemini AI explanation: {str(e)}"
+            error_msg = f"Failed to get {self.model}'s AI explanation: {str(e)}"
             logger.error(error_msg)
             return None
