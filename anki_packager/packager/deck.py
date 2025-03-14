@@ -55,20 +55,66 @@ class AnkiDeckCreator:
                 }
             ],
             css="""
+/* Color scheme variables */
+:root {
+    /* Light mode (default) colors */
+    --bg-color: #ffffff;
+    --text-color: #333333;
+    --secondary-text: #666666;
+    --tertiary-text: #2F4F4F;
+    --highlight-color: #0645AD;
+    --accent-color: #990000;
+    --divider-color: #99a;
+    --pos-color: #990000;
+    --cn-text-color: #8B008B;
+    --phrase-color: #8B4513;
+}
+
+/* Dark mode colors */
+@media (prefers-color-scheme: dark) {
+    .card {
+        --bg-color: #1e1e2e;
+        --text-color: #e0e0e0;
+        --secondary-text: #b0b0b0;
+        --tertiary-text: #a0c0c0;
+        --highlight-color: #7cb8ff;
+        --accent-color: #ff7c7c;
+        --divider-color: #666;
+        --pos-color: #ff9e64;
+        --cn-text-color: #d183e8;
+        --phrase-color: #e0c080;
+    }
+}
+
+/* Night mode in Anki also triggers dark mode */
+.nightMode {
+    --bg-color: #1e1e2e;
+    --text-color: #e0e0e0;
+    --secondary-text: #b0b0b0;
+    --tertiary-text: #a0c0c0;
+    --highlight-color: #7cb8ff;
+    --accent-color: #ff7c7c;
+    --divider-color: #666;
+    --pos-color: #ff9e64;
+    --cn-text-color: #d183e8;
+    --phrase-color: #e0c080;
+}
+
 .card {
     font-family: Arial, sans-serif;
     text-align: left;
     padding: 20px;
     max-width: 800px;
     margin: auto;
-    background-color: white;
+    background-color: var(--bg-color);
+    color: var(--text-color);
     line-height: 1.6;
 }
 
 /* 虚线分隔符 */
 .dashed {
     border: none;
-    border-top: 1px dashed #99a;  /* 使用灰蓝色，更接近图片 */
+    border-top: 1px dashed var(--divider-color);
     margin: 15px 0;
     width: 100%;
 }
@@ -87,18 +133,18 @@ class AnkiDeckCreator:
 .word {
     font-size: 2.2em;
     font-weight: bold;
-    color: #000;
+    color: var(--text-color);
     margin-bottom: 5px;
 }
 
 .pronunciation {
     font-size: 1.1em;
-    color: #0645AD;  /* Dictionary blue color */
+    color: var(--highlight-color);
     margin-bottom: 10px;
 }
 
 .front {
-    color: #666;
+    color: var(--secondary-text);
     margin-bottom: 15px;
     font-size: 0.90em;
 }
@@ -118,36 +164,36 @@ class AnkiDeckCreator:
 }
 
 .examples {
-    color: #2F4F4F;
+    color: var(--tertiary-text);
     margin: 15px 0;
 }
 
 .examples em {
-    color: #0645AD;  /* Blue for highlighted terms */
+    color: var(--highlight-color);
     font-style: normal;
     font-weight: bold;
 }
 
 .ai {
-    color: #666;
+    color: var(--secondary-text);
     margin: 15px 0;
 }
 
 .discrimination {
-    color: #333;
+    color: var(--text-color);
     margin: 15px 0;
 }
 
 /* Example sentences */
 .example {
-    color: #2F4F4F;
+    color: var(--tertiary-text);
     margin-left: 20px;
     margin-bottom: 10px;
 }
 
 /* Chinese text */
 .chinese {
-    color: #666;
+    color: var(--secondary-text);
     margin-left: 20px;
 }
             """,
@@ -169,12 +215,10 @@ class AnkiDeckCreator:
             ):
                 if current:
                     parts.append(" ".join(current))
-                # make part of speech bold, italic and red
-                word = f"<b><i><font color='red'>{word}</font></i></b>"
+                word = f"<b><i><span class='pos-marker'>{word}</span></i></b>"
                 current = [word]
             else:
-                # make chinese translation purple
-                word = f"<font color='purple'>{word}</font>"
+                word = f"<span class='cn-text'>{word}</span>"
                 current.append(word)
 
         if current:
@@ -182,7 +226,9 @@ class AnkiDeckCreator:
 
         return "<br>".join(parts)
 
-    def format_trans(self, translation: str, tense: str, distribution: str) -> str:
+    def format_trans(
+        self, translation: str, tense: str, distribution: str
+    ) -> str:
         """Add tense and distribution of each word in Translation part"""
         if not tense:
             # AI is disabled
@@ -199,7 +245,7 @@ class AnkiDeckCreator:
             result.append("【短语】")
             phrases = []
             for phrase in data["example_phrases"]:
-                formatted_phrase = f"<li><b><font color='brown'>{phrase['english']}</font></b> {phrase['chinese']}</li>"
+                formatted_phrase = f"<li><b><span class='phrase-text'>{phrase['english']}</span></b> {phrase['chinese']}</li>"
                 phrases.append(formatted_phrase)
 
             result.append("".join(phrases))
@@ -209,7 +255,7 @@ class AnkiDeckCreator:
             result.append("【例句】")
             phrases = []
             for sentence in data["example_sentences"]:
-                formatted_sentence = f"<li><b><font color='brown'>{sentence['english']}</font></b> {sentence['chinese']}</li>"
+                formatted_sentence = f"<li><b><span class='phrase-text'>{sentence['english']}</span></b> {sentence['chinese']}</li>"
                 phrases.append(formatted_sentence)
 
             result.append("".join(phrases))
@@ -228,7 +274,9 @@ class AnkiDeckCreator:
                 f"[<font color=blue>{data.get('ECDict', {}).get('phonetic', '')}</font>] ({data.get('ECDict', {}).get('tag', '')} {data.get('ECDict', {}).get('bnc', '')}/{data.get('ECDict', {}).get('frq', '')})",
                 # Ecdict 中文解释 + 释义分布 + 时态
                 self.format_trans(
-                    self.format_pos(data.get("ECDict", {}).get("translation", "")),
+                    self.format_pos(
+                        data.get("ECDict", {}).get("translation", "")
+                    ),
                     data.get("ECDict", {}).get("distribution", ""),
                     data.get("AI", {}).get("tenses", ""),
                 ),
