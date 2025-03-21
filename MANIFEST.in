@@ -1,0 +1,15 @@
+include LICENSE
+include README.md
+include requirements.txt
+recursive-include anki_packager/packager *.py
+global-exclude *.py[cod] __pycache__ *.so
+global-exclude */__pycache__/*
+exclude anki_packager.log
+exclude *.pyc
+exclude __pycache__
+exclude *.apkg
+# 排除所有字典数据文件
+exclude anki_packager/dicts/*.mdx
+exclude anki_packager/dicts/*.7z
+exclude anki_packager/dicts/*.db
+exclude anki_packager/dicts/*.csv

@@ -5,6 +5,9 @@ import json
 from tqdm import tqdm
 import signal
 
+### config
+from anki_packager.utils import get_user_config_dir
+
 ### logger
 from anki_packager.logger import logger
 
@@ -65,14 +68,23 @@ def main():
     )
 
     parser.add_argument(
-        "--openai_key", dest="openai_key", type=str, default="", help="OpenAI api key"
+        "--openai_key",
+        dest="openai_key",
+        type=str,
+        default="",
+        help="OpenAI api key",
     )
 
     parser.add_argument(
-        "--gemini_key", dest="gemini_key", type=str, help="Google Gemini api key"
+        "--gemini_key",
+        dest="gemini_key",
+        type=str,
+        help="Google Gemini api key",
     )
 
-    parser.add_argument("--model", dest="model", type=str, help="custome AI model")
+    parser.add_argument(
+        "--model", dest="model", type=str, help="custome AI model"
+    )
 
     parser.add_argument(
         "-p",
@@ -94,7 +106,9 @@ def main():
     options = parser.parse_args()
 
     ### set config according to config directory or parsed arguments
-    config_path = os.path.join(os.getcwd(), "config")
+    config_dir = get_user_config_dir()
+    config_path = os.path.join(config_dir, "config")
+
     ## 1. read config.json
     with open(os.path.join(config_path, "config.json"), "r") as ai_cfg:
         cfg = json.load(ai_cfg)
@@ -110,31 +124,31 @@ def main():
 
     # display eudict id only
     if options.eudicid:
+        logger.info("设置：仅读取欧路词典 ID")
         eudic = EUDIC(EUDIC_TOKEN, EUDIC_ID)
         eudic.get_studylist()
         exit(0)
 
     # only add word into vocabulary.txt line by line
-    elif options.eudic is None:
+    elif options.word:
         WORD = options.word
-        cwd = os.getcwd()
-        vocab_path = os.path.join(cwd, "config", "vocabulary.txt")
+        vocab_path = os.path.join(config_path, "vocabulary.txt")
         with open(vocab_path, "a") as f:
             f.write(WORD + "\n")
-        logger.info(f"单词: {WORD} 已添加进 config/vocabulary.txt!")
+        logger.info(f"单词: {WORD} 已添加进 {vocab_path}")
         exit(0)
 
     words = []
     retry_words = []
     number_words = 0
     audio_files = []
-    data = {}
     ai = None
 
     anki = AnkiDeckCreator(f"{DECK_NAME}")
     ecdict = Ecdict()
     youdao = YoudaoScraper()
 
+    # TODO: Improve readability
     if options.disable_ai:
         logger.info("AI 功能已关闭")
     else:
@@ -152,7 +166,9 @@ def main():
                 exit(1)
             if MODEL in ["gpt-4o"]:
                 # walrus operator: set API_KEY if OPENAI_API_KEY is not None
-                if OPENAI_API_KEY := (options.openai_key or env.get("OPENAI_API_KEY")):
+                if OPENAI_API_KEY := (
+                    options.openai_key or env.get("OPENAI_API_KEY")
+                ):
                     API_KEY = OPENAI_API_KEY
                 else:
                     logger.error("OPENAI API key is missing")
@@ -166,7 +182,9 @@ def main():
                     logger.error("DeepSeek API key is missing")
                     exit(1)
             elif MODEL in ["gemini-2.0-flash"]:
-                if GEMINI_API_KEY := (options.gemini_key or env.get("GEMINI_API_KEY")):
+                if GEMINI_API_KEY := (
+                    options.gemini_key or env.get("GEMINI_API_KEY")
+                ):
                     API_KEY = GEMINI_API_KEY
                 else:
                     logger.error("Gemini API key is missing")
@@ -189,12 +207,16 @@ def main():
 
     ## 4. vocabulary.txt or eudic data
     if options.eudic:
+        logger.info("配置: 对欧路词典生词本单词进行处理...")
         eudic = EUDIC(EUDIC_TOKEN, EUDIC_ID)
         eudic_words = eudic.get_words()["data"]
         for word in eudic_words:
             words.append(word["word"])
         number_words = len(words)
     else:
+        logger.info(
+            f"配置: 对默认生词本单词{config_path}/vocabulary.txt 进行处理..."
+        )
         with open(os.path.join(config_path, "vocabulary.txt"), "r") as vocab:
             try:
                 for word in vocab:
@@ -222,7 +244,7 @@ def main():
         audio_path = youdao._get_audio(word)
         if not audio_path:
             raise Exception("Failed to get audio")
-        
+
         audio_files.append(audio_path)
         # 只使用文件名作为 sound 标签的值
         audio_filename = os.path.basename(audio_path)
@@ -238,7 +260,7 @@ def main():
         youdao_result = youdao.get_word_info(word)
         if not youdao_result:
             raise Exception("Failed to get Youdao information")
-            
+
         data["Youdao"] = youdao_result
 
         # Get AI explanation if AI is enabled
@@ -277,7 +299,7 @@ def main():
             except Exception as e:
                 logger.error(f"重试仍然失败... '{word}': {e}")
                 failed_words.append(word)
-        
+
         if failed_words:
             failed_file = os.path.join(config_path, "failed.txt")
             with open(failed_file, "w") as f:
@@ -285,14 +307,12 @@ def main():
                     f.write(f"{word}\n")
             logger.info(f"处理失败的单词已写入: {config_path}/failed.txt")
 
-        
-
     # 关闭 pbar 避免多输出一次
     pbar.close()
     try:
         if anki.added:
             anki.write_to_file(f"{DECK_NAME}.apkg", audio_files)
-            logger.info(f"卡片写入完毕，请打开 {DECK_NAME}.apkg")
+            logger.info(f"牌组生成完毕，请打开 {DECK_NAME}.apkg")
     except Exception as e:
         logger.error(f"Error saving Anki deck: {e}")
     try:

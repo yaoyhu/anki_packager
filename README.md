@@ -5,7 +5,7 @@
   <br>anki_packager
 </h1>
   <p align="center">
-    自动化 Anki 英语单词高质量卡片生成工具
+    自动化 Anki 英语单词高质量卡片牌组生成工具
     <br />
     <a href="#关于项目">关于项目</a>
     ·
@@ -19,7 +19,7 @@
 
 ## 关于项目
 
-`anki_packager` 是一款智能化的 Anki 单词卡片生成工具，能够自动创建高质量的 `.apkg` 牌组。本项目致力于为英语学习者提供一个高效、智能的记忆辅助工具。
+`anki_packager` 是一款自动化的 Anki 单词卡片生成工具，能够自动创建高质量的 `.apkg` 牌组。本项目致力于为英语学习者提供一个高效、智能的记忆辅助工具。
 
 ### 核心特性
 
@@ -30,7 +30,7 @@
   - 支持流行 AI 模型（需要 API-KEY）对单词进行总结、助记及和情境故事生成
 - 便捷的数据导入：支持欧路词典生词本一键导入并批量处理单词列表，自动生成卡片
 - 优良的命令行体验：显示处理进度，支持记录错误、支持丰富的命令行参数
-- 支持 Docker 运行
+- 支持 Docker 运行、支持 PyPI 安装
 
 ### 卡片预览
 
@@ -50,24 +50,66 @@
 
 ### 快速开始
 
-1. **克隆项目**
-
 ```bash
-# 因为本项目包含子模块，克隆时请使用以下命令
-git clone --recursive https://github.com/yaoyhu/anki_packager.git
+# 直接使用 pip 安装
+pip install apkger
 ```
 
-2. **正确配置**
+在使用 apkger 之前，你需要先在 `config/config.json`文件中填写相关配置信息：
 
-在使用 anki_packager 之前，你需要先进行配置。请在 `config/config.json` 文件中填写相关配置信息：
+```json
+{
+  "API_KEY": "your-api-key-here",
+  "API_BASE": "https://api.openai.com/v1",
+  "MODEL": "gpt-4o",
+  "PROXY": "127.0.0.1:7890",
+  "EUDIC_TOKEN": "your-eudic-token",
+  "EUDIC_ID": "0",
+  "DECK_NAME": "anki_packager"
+}
+```
 
-1. 生词默认放在 `config/vocabulary.txt`
-2. 如果需要用 AI 必须配置 `API_KEY`、`MODEL`、`API_BASE`和 `PROXY`
-3. 如果需要使用欧路词典生词本：先按照[欧陆官方获取](https://my.eudic.net/OpenAPI/Authorization) TOKEN，然后使用`python -m anki_packager --eudicid` 选择 ID 写入配置文件
+- 如果需要 AI 功能，必须配置 `API_KEY`、`MODEL`、`API_BASE`和 `PROXY`
+- 如果需要使用欧路词典生词本：先按照[欧陆官方获取](https://my.eudic.net/OpenAPI/Authorization) TOKEN，然后使用`apkger --eudicid` 选择 ID 写入配置文件
+
+### 下载字典
+
+下载字典到配置目录中（注意名称不要错）:
+
+- Linux/MacOS: `~/.config/anki_packager/dicts/`
+- Windows: `C:\Users\<用户名>\AppData\Roaming\anki_packager\dicts\`
+
+字典数据（感谢[skywind）](https://github.com/skywind3000)下载地址:
+
+- [stardict.7z](https://github.com/skywind3000/ECDICT/raw/refs/heads/master/stardict.7z)
+- [单词释义比例](https://pan.baidu.com/s/1kUItx8j)
+- [有道词语辨析](https://pan.baidu.com/s/1gff2tdp)
+
+字典下载完毕后，解压和处理交给 anki_packager 即可。
 
 ### 运行
 
-#### 方式一：Conda 环境（推荐）
+目前软件没有 UI 界面，只支持命令行运行，下面给出一些参考：
+
+```bash
+# 查看帮助信息
+apkger -h
+
+# 从默认生词本读词生成卡片
+apkger
+
+### 关闭 AI 功能
+apkger --disable_ai
+
+### 从欧路词典生词本导出单词，生成卡片（需要先配置)
+## 先查看 ID 写入配置文件
+apkger --eudicid
+## 生成卡片
+apkger --eudic
+```
+
+<details>
+<summary>方式一：Conda 环境</summary>
 
 ```bash
 # 创建并激活一个名为 apkg 的 Python 3.9 虚拟环境
@@ -90,7 +132,10 @@ python -m anki_packager --disable_ai
 python -m anki_packager
 ```
 
-#### 方式二：Docker 容器
+</details>
+
+<details>
+<summary>方式二：Docker 容器</summary>
 
 如果你希望避免污染本地环境，可以使用 Docker 运行 anki_packager，可以配合 `Makefile` 使用：
 
@@ -106,14 +151,16 @@ make run
 make shell
 ```
 
+</details>
+
 ## TODO
 
 - [x] ~~集成单词释义比例词典~~
 - [x] ~~近一步优化单词卡片 UI~~
 - [x] ~~从欧路词典导入生词~~
 - [x] ~~支持 SiliconFlow、Gemini~~
-- [x] 重新支持 Docker
-- [ ] 发布到 PyPI
+- [x] ~~重新支持 Docker~~
+- [x] ~~发布到 PyPI~~
 - [ ] 支持更多软件生词导出
 - [ ] 支持 Longman 词典
 - [ ] 训练现成的数据包发布 release

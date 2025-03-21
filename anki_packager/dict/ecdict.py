@@ -2,9 +2,9 @@ import os
 import sqlite3
 
 from anki_packager.logger import logger
+from anki_packager.utils import get_user_config_dir
 
-# https://github.com/skywind3000/ECDICT
-from anki_packager.dict.ECDICT import stardict
+from anki_packager.dict import stardict
 
 # https://github.com/liuyug/mdict-utils
 from mdict_utils.reader import query
@@ -13,14 +13,12 @@ from mdict_utils.utils import ElapsedTimer
 
 class Ecdict:
     def __init__(self):
-        # ecdict path: ./ECDICT/
-        self.sevenzip = os.path.join(
-            os.path.join(os.path.dirname(__file__), "ECDICT"), "stardict.7z"
-        )
-        # config path: project_root/dicts
-        self.config = os.path.join(os.path.dirname(__file__), "../../dicts")
-        self.csv = os.path.join(self.config, "stardict.csv")
-        self.sqlite = os.path.join(self.config, "stardict.db")
+        self.config_dir = get_user_config_dir()
+        self.dicts_dir = os.path.join(self.config_dir, "dicts")
+        # keep the package archive small
+        self.seven_zip = os.path.join(self.dicts_dir, "stardict.7z")
+        self.csv = os.path.join(self.dicts_dir, "stardict.csv")
+        self.sqlite = os.path.join(self.dicts_dir, "stardict.db")
         self._convert()
         self.conn = sqlite3.connect(self.sqlite)
         self.cursor = self.conn.cursor()
@@ -34,19 +32,21 @@ class Ecdict:
     def _convert(self):
         if not os.path.exists(self.csv):
             # unzip stardict.csv in 7zip
-            if not os.path.exists(self.sevenzip):
-                raise FileNotFoundError(f"{self.sevenzip} 未找到!")
+            if not os.path.exists(self.seven_zip):
+                raise FileNotFoundError(f"{self.seven_zip} 未找到!")
 
             import py7zr
 
-            logger.info("首次使用：正在解压词典到 anki_packager/dicts/stardict.csv")
-            ar = py7zr.SevenZipFile(self.sevenzip, mode="r")
-            ar.extractall(path=self.config)
+            logger.info(
+                "首次使用: 正在解压词典到 anki_packager/dicts/stardict.csv"
+            )
+            ar = py7zr.SevenZipFile(self.seven_zip, mode="r")
+            ar.extractall(path=self.dicts_dir)
             ar.close()
 
         if not os.path.exists(self.sqlite):
             logger.info(
-                "首次使用：正在获取词典数据库到 anki_packager/dicts/stardict.db（790M）"
+                "耐心等待(790M): 正在转换数据库 anki_packager/dicts/stardict.db"
             )
             stardict.convert_dict(self.sqlite, self.csv)
 
@@ -80,14 +80,12 @@ class Ecdict:
     def get_distribution(self, data):
         """
         Get word distribution from mdx dictionary
-
-        Demo:
-            释义：放弃(<font color=orangered>76%</font>)，抛弃(<font color=orangered>21%</font>)，放纵(<font color=orangered>3%</font>)<br>
-            <font color=gray >词性：动词(96%), 名词(4%)</font>
         """
         with ElapsedTimer(verbose=False):
             mdx_path = os.path.join(
-                os.path.dirname(__file__), "../../dicts", "单词释义比例词典-带词性.mdx"
+                get_user_config_dir(),
+                "dicts",
+                "单词释义比例词典-带词性.mdx",
             )
             record = query(mdx_path, data["word"])
             if record:
@@ -98,7 +96,7 @@ class Ecdict:
         """[《有道词语辨析》加强版](https://skywind.me/blog/archives/2941)"""
         with ElapsedTimer(verbose=False):
             mdx_path = os.path.join(
-                os.path.dirname(__file__), "../../dicts", "有道词语辨析.mdx"
+                get_user_config_dir(), "dicts", "有道词语辨析.mdx"
             )
             record = query(mdx_path, data["word"])
             if record:
