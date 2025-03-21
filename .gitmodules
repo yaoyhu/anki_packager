@@ -1,3 +1,0 @@
-[submodule "anki_packager/dict/ECDICT"]
-	path = anki_packager/dict/ECDICT
-	url = git@github.com:skywind3000/ECDICT.git
