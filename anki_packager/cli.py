@@ -148,62 +148,49 @@ def main():
     ecdict = Ecdict()
     youdao = YoudaoScraper()
 
-    # TODO: Improve readability
+    # AI 配置
     if options.disable_ai:
         logger.info("AI 功能已关闭")
     else:
-        PROXY = options.proxy
-        if PROXY != "":
+        PROXY = options.proxy or PROXY
+        if PROXY:
             env["HTTP_PROXY"] = PROXY
             env["HTTPS_PROXY"] = PROXY
+            logger.info(f"使用代理: {PROXY}")
 
-        ### API_KEY in config.json not set, get key from cli based on the model
+        API_BASE = options.api_base or API_BASE
+        MODEL = options.model or MODEL
+        if not MODEL:
+            logger.error("未设置 AI 模型，请在配置文件或使用 --model 参数指定")
+            exit(1)
+
+        # 检查模型是否在支持列表中
+        if MODEL not in MODEL_DICT:
+            logger.error(f"目前只支持的模型有：{', '.join(MODEL_DICT.keys())}")
+            exit(1)
+
+        # 根据模型类型设置对应的 API 密钥
+        model_class = MODEL_DICT[MODEL].__module__.split(".")[-1]
+        if model_class == "gpt":
+            API_KEY = options.openai_key or env.get("OPENAI_API_KEY") or API_KEY
+        elif model_class == "deepseek":
+            API_KEY = (
+                options.deepseek_key or env.get("DEEPSEEK_API_KEY") or API_KEY
+            )
+        elif model_class == "gemini":
+            API_KEY = options.gemini_key or env.get("GEMINI_API_KEY") or API_KEY
+
         if not API_KEY:
-            # model must be valid
-            MODEL = MODEL or options.model
-            if not MODEL:
-                logger.error("Set AI model in config.json or --model")
-                exit(1)
-            if MODEL in ["gpt-4o"]:
-                # walrus operator: set API_KEY if OPENAI_API_KEY is not None
-                if OPENAI_API_KEY := (
-                    options.openai_key or env.get("OPENAI_API_KEY")
-                ):
-                    API_KEY = OPENAI_API_KEY
-                else:
-                    logger.error("OPENAI API key is missing")
-                    exit(1)
-            elif MODEL in ["deepseek-ai/DeepSeek-V2.5"]:
-                if DEEPSEEK_API_KEY := (
-                    options.deepseek_key or env.get("DEEPSEEK_API_KEY")
-                ):
-                    API_KEY = DEEPSEEK_API_KEY
-                else:
-                    logger.error("DeepSeek API key is missing")
-                    exit(1)
-            elif MODEL in ["gemini-2.0-flash"]:
-                if GEMINI_API_KEY := (
-                    options.gemini_key or env.get("GEMINI_API_KEY")
-                ):
-                    API_KEY = GEMINI_API_KEY
-                else:
-                    logger.error("Gemini API key is missing")
-                    exit(1)
-            else:
-                logger.error("Invalid AI model")
-                exit(1)
-        elif not MODEL:
-            ### api key is set in config.json, but model is not set
-            MODEL = options.model
-            if not MODEL:
-                logger.error("Set AI model in config.json or --model")
-                exit(1)
+            logger.error(f"缺少{model_class} API 密钥")
+            exit(1)
 
-        if not API_BASE:
-            API_BASE = options.api_base
-
-        ai = MODEL_DICT[MODEL](MODEL, API_KEY, API_BASE)
-        logger.info(f"当前使用的 AI 模型: {MODEL}")
+        # 5. 初始化 AI 模型
+        try:
+            ai = MODEL_DICT[MODEL](MODEL, API_KEY, API_BASE)
+            logger.info(f"当前使用的 AI 模型: {MODEL}")
+        except Exception as e:
+            logger.error(f"初始化 AI 模型失败: {e}")
+            exit(1)
 
     ## 4. vocabulary.txt or eudic data
     if options.eudic:
