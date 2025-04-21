@@ -280,7 +280,7 @@ class AnkiDeckCreator:
                     data.get("ECDict", {}).get("distribution", ""),
                     data.get("AI", {}).get("tenses", ""),
                 ),
-                # TODO ECDICT for now, will be implemented later
+                # TODO: use better English source
                 f"【英解】<br>{self.format_pos(data.get('ECDict', {}).get('definition', ''))}",
                 # 有道词典示例短语和句子
                 self.format_youdao(data.get("Youdao", {})),
@@ -288,8 +288,8 @@ class AnkiDeckCreator:
                 ""
                 if not data.get("AI")
                 else f"【词源】<br>{data.get('AI', {}).get('origin', {}).get('etymology', '')}<br><br> \
-                【助记】<li>联想：{data.get('AI', {}).get('origin', {}).get('mnemonic', {}).get('associative', '')}</li>\
-                <li>谐音： {data.get('AI', {}).get('origin', {}).get('mnemonic', {}).get('homophone', '')}</li>",
+                【助记】<li>{data.get('AI', {}).get('origin', {}).get('mnemonic', {}).get('associative', '')}</li>\
+                <li>{data.get('AI', {}).get('origin', {}).get('mnemonic', {}).get('homophone', '')}</li>",
                 # 词语辨析
                 ""
                 if not data.get("ECDict", {}).get("diffrentiation", "")
