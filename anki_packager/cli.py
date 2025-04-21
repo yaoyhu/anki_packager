@@ -75,6 +75,14 @@ def main():
         help="OpenAI api key",
     )
 
+    # support user-defined txt file: ./prog --txt demo.txt
+    parser.add_argument(
+        "--txt",
+        dest="txt_file",
+        type=str,
+        help="Use a custom txt file instead of vocabulary.txt",
+    )
+
     parser.add_argument(
         "--gemini_key",
         dest="gemini_key",
@@ -191,8 +199,7 @@ def main():
         except Exception as e:
             logger.error(f"初始化 AI 模型失败: {e}")
             exit(1)
-
-    ## 4. vocabulary.txt or eudic data
+    ## 4. vocabulary source: eudic data, custom txt file, or default vocabulary.txt
     if options.eudic:
         logger.info("配置: 对欧路词典生词本单词进行处理...")
         eudic = EUDIC(EUDIC_TOKEN, EUDIC_ID)
@@ -200,21 +207,43 @@ def main():
         for word in eudic_words:
             words.append(word["word"])
         number_words = len(words)
-    else:
-        logger.info(
-            f"配置: 对默认生词本单词{config_path}/vocabulary.txt 进行处理..."
-        )
-        with open(os.path.join(config_path, "vocabulary.txt"), "r") as vocab:
-            try:
+    elif options.txt_file:
+        txt_file_path = options.txt_file
+        if not os.path.isabs(txt_file_path):
+            # If relative path, resolve from current directory
+            txt_file_path = os.path.abspath(txt_file_path)
+
+        logger.info(f"配置: 对自定义单词文件 {txt_file_path} 进行处理...")
+        try:
+            with open(txt_file_path, "r") as vocab:
                 for word in vocab:
-                    words.append(word.strip())
+                    word = word.strip()
+                    if word:  # Skip empty lines
+                        words.append(word)
                 number_words = len(words)
-            except FileNotFoundError:
-                logger.error("vocabulary.txt not found")
-                exit(1)
-            except Exception as e:
-                logger.error(f"Error reading vocabulary.txt: {e}")
-                exit(1)
+        except FileNotFoundError:
+            logger.error(f"文件 {txt_file_path} 未找到")
+            exit(1)
+        except Exception as e:
+            logger.error(f"读取文件 {txt_file_path} 出错: {e}")
+            exit(1)
+    else:
+        vocab_path = os.path.join(config_path, "vocabulary.txt")
+        logger.info(f"配置: 对默认生词本单词 {vocab_path} 进行处理...")
+        try:
+            with open(vocab_path, "r") as vocab:
+                for word in vocab:
+                    word = word.strip()
+                    if word:  # Skip empty lines
+                        words.append(word)
+                number_words = len(words)
+            logger.info(f"从默认词库读取了 {number_words} 个单词")
+        except FileNotFoundError:
+            logger.error(f"默认词库文件 {vocab_path} 未找到")
+            exit(1)
+        except Exception as e:
+            logger.error(f"读取默认词库文件出错: {e}")
+            exit(1)
         vocab.close()
 
     pbar = tqdm(total=number_words, desc="开始处理")
