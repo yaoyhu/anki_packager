@@ -10,5 +10,10 @@ logging.basicConfig(
     handlers=[logging.FileHandler("anki_packager.log"), logging.StreamHandler()],
 )
 
+litellm_logger = logging.getLogger("LiteLLM")
+litellm_logger.setLevel(logging.ERROR)
+litellm_logger = logging.getLogger("LiteLLM Router")
+litellm_logger.setLevel(logging.ERROR)
+
 logging.getLogger("httpx").setLevel(logging.WARNING)
 logger = logging.getLogger(__name__)

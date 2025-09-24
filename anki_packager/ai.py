@@ -1,6 +1,6 @@
 from typing import Dict
-import litellm
 from litellm import Choices, Message
+from litellm.router import Router
 from litellm.files.main import ModelResponse
 import json
 from anki_packager.prompt import PROMPT
@@ -39,34 +39,31 @@ class WordExplanation(BaseModel):
     story: Story
 
 
+
+
+
 class llm:
-    def __init__(self, model: str, api_base: str):
-        self.model = model
-        if api_base:
-            self.api_base = api_base
-        else:
-            self.api_base = None
+    def __init__(self, model_param: list):
+        model_list = [
+            {
+                "model_name": "a",  # 为所有模型统一使用别名 "a"
+                "litellm_params": param,
+            }
+            for param in model_param
+        ]
+        self.router = Router(model_list)
 
-        if api_base is None:
-            c = litellm.utils.validate_environment(model=model)
-        else:
-            c = litellm.utils.validate_environment(model=model, api_base=api_base)
-        if not c["keys_in_environment"]:
-            raise EnvironmentError(
-                f"Missing environment variables: {c['missing_keys']}"
-            )
-
-    def explain(self, word: str) -> Dict:
+    async def explain(self, word: str) -> Dict:
         try:
-            response = litellm.completion(
-                model=self.model,
-                api_base=self.api_base,
+            response = await self.router.acompletion(
+                model="a",
                 messages=[
                     {"role": "system", "content": PROMPT},
                     {"role": "user", "content": word},
                 ],
                 temperature=0.3,
                 max_tokens=500,
+                response_format={"type": "json_object"},
             )
             if isinstance(response, ModelResponse):
                 if isinstance(response.choices, list) and response.choices:

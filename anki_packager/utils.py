@@ -1,5 +1,4 @@
 import os
-import json
 import platform
 
 # import requests
@@ -27,21 +26,28 @@ def initialize_config():
     dicts_dir = os.path.join(config_dir, "dicts")
     os.makedirs(dicts_dir, exist_ok=True)
 
-    # Default configuration
-    default_config = {
-        "ENV": {"OPENAI_API_KEY": "", "DEEPSEEK_API_KEY": ""},
-        "API_BASE": "",
-        "MODEL": "",
-        "PROXY": "",  # 删掉默认避免llm请求出错
-        "EUDIC_TOKEN": "",
-        "EUDIC_ID": "0",
-        "DECK_NAME": "anki-packager",
-    }
+    # Default configuration in TOML format
+    default_config = """PROXY = ""
+EUDIC_TOKEN = ""
+EUDIC_ID = "0"
+DECK_NAME = "anki_packager"
 
-    config_path = os.path.join(config_subdir, "config.json")
+[[MODEL_PARAM]]
+model = "gemini-2.5-flash" 
+api_key = "GEMINI_API_KEY"
+rpm = 10 # 每分钟请求次数
+
+# [[MODEL_PARAM]]
+# model = "openai/GLM-4-Flash"
+# api_key = ""
+# api_base = "https://open.bigmodel.cn/api/paas/v4/"
+# rpm = 200
+"""
+
+    config_path = os.path.join(config_subdir, "config.toml")
     if not os.path.exists(config_path):
         with open(config_path, "w", encoding="utf-8") as f:
-            json.dump(default_config, f, indent=2)
+            f.write(default_config)
 
     vocab_path = os.path.join(config_subdir, "vocabulary.txt")
     if not os.path.exists(vocab_path):

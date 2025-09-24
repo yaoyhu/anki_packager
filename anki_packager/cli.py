@@ -1,7 +1,8 @@
 import argparse
+import asyncio
 import os
 from os import environ as env
-import json
+import tomllib
 from tqdm import tqdm
 import signal
 
@@ -22,6 +23,9 @@ from anki_packager.dict.eudic import EUDIC
 ### Anki
 from anki_packager.packager.deck import AnkiDeckCreator
 
+MAX_RETRIES = 3  # 最大重试次数
+RETRY_DELAY = 2  # 每次重试前的等待时间（秒）
+
 
 def create_signal_handler(anki, youdao, audio_files, DECK_NAME, pbar):
     def signal_handler(sig, frame):
@@ -36,7 +40,7 @@ def create_signal_handler(anki, youdao, audio_files, DECK_NAME, pbar):
     return signal_handler
 
 
-def main():
+async def main():
     parser = argparse.ArgumentParser()
 
     parser.add_argument("--word", dest="word", type=str, help="word to add")
@@ -101,16 +105,14 @@ def main():
     config_path = os.path.join(config_dir, "config")
 
     ## 1. read config.json
-    with open(os.path.join(config_path, "config.json"), "r") as ai_cfg:
-        cfg = json.load(ai_cfg)
-        ENV = cfg["ENV"]
+    with open(os.path.join(config_path, "config.toml"), "rb") as f:
+        cfg = tomllib.load(f)
+        MODEL_PARAM = cfg["MODEL_PARAM"]
         PROXY = cfg["PROXY"]
-        API_BASE = cfg["API_BASE"]
-        MODEL = cfg["MODEL"]
         EUDIC_TOKEN = cfg["EUDIC_TOKEN"]
         EUDIC_ID = cfg["EUDIC_ID"]
         DECK_NAME = cfg["DECK_NAME"]
-    ai_cfg.close()
+
     logger.info("配置读取完毕")
 
     # display eudict id only
@@ -130,7 +132,6 @@ def main():
         exit(0)
 
     words = []
-    retry_words = []
     number_words = 0
     audio_files = []
     ai = None
@@ -149,27 +150,12 @@ def main():
             env["HTTPS_PROXY"] = PROXY
             logger.info(f"使用代理: {PROXY}")
 
-        API_BASE = options.api_base or API_BASE
-        MODEL = options.model or MODEL
-        if not MODEL:
-            logger.error("未设置 AI 模型，请在配置文件或使用 --model 参数指定")
-            exit(1)
-
-        # 导入环境变量
-        for key, value in ENV.items():
-            if key in os.environ:
-                logger.info(f"环境变量 '{key}' 已存在，将被配置文件中的值覆盖。")
-
-            if value and isinstance(value, str):
-                os.environ[key] = value
-                logger.info(f"成功加载 '{key}' 到环境变量。")
-            else:
-                logger.debug(f"跳过 '{key}'，因为其值为空或格式不正确。")
-
         # 初始化 AI 模型
         try:
-            ai = llm(MODEL, API_BASE)
-            logger.info(f"当前使用的 AI 模型: {MODEL}")
+            ai = llm(MODEL_PARAM)
+            logger.info(
+                f"当前使用的 AI 模型: {[param['model'] for param in MODEL_PARAM]}"
+            )
         except Exception as e:
             logger.error(f"初始化 AI 模型失败: {e}")
             exit(1)
@@ -226,76 +212,33 @@ def main():
         create_signal_handler(anki, youdao, audio_files, DECK_NAME, pbar),
     )
 
-    def process_word(word, ai, anki, youdao, ecdict, audio_files, pbar):
-        data = {}
-        data["Word"] = word
+    tasks = [
+        process_word_async(word, ai, anki, youdao, ecdict, audio_files, pbar)
+        for word in words
+    ]
 
-        # Get audio pronunciation from gtts
-        audio_path = youdao._get_audio(word)
-        if not audio_path:
-            raise Exception("Failed to get audio")
+    logger.info(f"开始并发处理 {len(words)} 个单词...")
 
-        audio_files.append(audio_path)
-        # 只使用文件名作为 sound 标签的值
-        audio_filename = os.path.basename(audio_path)
-        data["Pronunciation"] = audio_filename
+    results = await asyncio.gather(*tasks, return_exceptions=True)
 
-        # Get ECDICT definition
-        dict_def = ecdict.ret_word(word)
-        if not dict_def:
-            raise Exception("Failed to get ECDICT definition")
-        data["ECDict"] = dict_def
+    successful_results = []
+    failed_words = []
 
-        # Get Youdao dictionary information
-        youdao_result = youdao.get_word_info(word)
-        if not youdao_result:
-            raise Exception("Failed to get Youdao information")
-
-        data["Youdao"] = youdao_result
-
-        # Get AI explanation if AI is enabled
-        if ai is not None:
-            try:
-                ai_explanation = ai.explain(word)
-                data["AI"] = ai_explanation
-            except Exception as e:
-                raise Exception(f"Failed to get AI explanation: {str(e)}")
+    for word, result in zip(words, results):
+        if isinstance(result, Exception):
+            failed_words.append(word)
+            logger.error(f"未能成功处理 '{word}'. 错误: {result}")
         else:
-            data["AI"] = {}
+            successful_results.append(result)
 
-        # TODO: Longman English explain
-
-        # Add note to deck
-        anki.add_note(data)
-        pbar.update(1)
-        pbar.set_description(f"单词 {word} 添加成功")
-        return True
-
-    retry_words = []
-    for word in words:
-        try:
-            process_word(word, ai, anki, youdao, ecdict, audio_files, pbar)
-        except Exception as e:
-            retry_words.append(word)
-            logger.info(f"单词{word}处理出错: {e}，将会重试...")
-            continue
-
-    if retry_words:
-        logger.info("对处理出错单词进行重试...")
-        failed_words = []
-        for word in retry_words:
-            try:
-                process_word(word, ai, anki, youdao, ecdict, audio_files, pbar)
-            except Exception as e:
-                logger.error(f"重试仍然失败... '{word}': {e}")
-                failed_words.append(word)
-
-        if failed_words:
-            failed_file = os.path.join(config_path, "failed.txt")
-            with open(failed_file, "w") as f:
-                for word in failed_words:
-                    f.write(f"{word}\n")
-            logger.info(f"处理失败的单词已写入: {config_path}/failed.txt")
+    if failed_words:
+        failed_file = os.path.join(config_path, "failed.txt")
+        logger.error(f"共 {len(failed_words)} 个单词处理失败，将它们写入 {failed_file}")
+        with open(failed_file, "w", encoding="utf-8") as f:
+            for word in failed_words:
+                f.write(f"{word}\n")
+    else:
+        logger.info("所有单词均已成功处理！")
 
     # 关闭 pbar 避免多输出一次
     pbar.close()
@@ -311,5 +254,73 @@ def main():
         logger.error(f"Error cleaning up audio files: {e}")
 
 
+async def process_word(word, ai, anki, youdao, ecdict, audio_files, pbar):
+    data = {}
+    data["Word"] = word
+
+    # Get audio pronunciation from gtts
+    audio_path = await youdao._get_audio(word)
+    if not audio_path:
+        raise Exception("Failed to get audio")
+
+    audio_files.append(audio_path)
+    # 只使用文件名作为 sound 标签的值
+    audio_filename = os.path.basename(audio_path)
+    data["Pronunciation"] = audio_filename
+
+    # Get ECDICT definition
+    dict_def = await ecdict.ret_word(word)
+    if not dict_def:
+        raise Exception("Failed to get ECDICT definition")
+    data["ECDict"] = dict_def
+
+    # Get Youdao dictionary information
+    youdao_result = await youdao.get_word_info(word)
+    if not youdao_result:
+        raise Exception("Failed to get Youdao information")
+
+    data["Youdao"] = youdao_result
+
+    # Get AI explanation if AI is enabled
+    if ai is not None:
+        try:
+            ai_explanation = await ai.explain(word)
+            data["AI"] = ai_explanation
+        except Exception as e:
+            raise Exception(f"Failed to get AI explanation: {str(e)}")
+    else:
+        data["AI"] = {}
+
+    # TODO: Longman English explain
+
+    # Add note to deck
+    anki.add_note(data)
+    pbar.update(1)
+    pbar.set_description(f"单词 {word} 添加成功")
+    return True
+
+
+async def process_word_async(word, ai, anki, youdao, ecdict, audio_files, pbar):
+    """
+    包含了重试和退避逻辑
+    """
+    for attempt in range(MAX_RETRIES):
+        try:
+            result = await process_word(
+                word, ai, anki, youdao, ecdict, audio_files, pbar
+            )
+            return result
+        except Exception as e:
+            logger.warning(
+                f"处理 '{word}' 第 {attempt + 1}/{MAX_RETRIES} 次尝试失败: {e}"
+            )
+            if attempt + 1 == MAX_RETRIES:
+                # 如果是最后一次尝试，则不再捕获异常，让它冒泡出去
+                # gather(return_exceptions=True) 会捕获这个最终的异常
+                logger.error(f"'{word}' 在所有 {MAX_RETRIES} 次尝试后最终失败。")
+                raise
+            await asyncio.sleep(RETRY_DELAY)
+
+
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())

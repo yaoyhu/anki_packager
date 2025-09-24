@@ -37,9 +37,7 @@ class Ecdict:
 
             import py7zr
 
-            logger.info(
-                "首次使用: 正在解压词典到 anki_packager/dicts/stardict.csv"
-            )
+            logger.info("首次使用: 正在解压词典到 anki_packager/dicts/stardict.csv")
             ar = py7zr.SevenZipFile(self.seven_zip, mode="r")
             ar.extractall(path=self.dicts_dir)
             ar.close()
@@ -50,7 +48,7 @@ class Ecdict:
             )
             stardict.convert_dict(self.sqlite, self.csv)
 
-    def ret_word(self, word):
+    async def ret_word(self, word):
         """Return ECDICT data
         dict: 包含以下 ECDICT 数据字段的字典：
         - word: 单词名称
@@ -95,9 +93,7 @@ class Ecdict:
     def get_diffrentiation(self, data):
         """[《有道词语辨析》加强版](https://skywind.me/blog/archives/2941)"""
         with ElapsedTimer(verbose=False):
-            mdx_path = os.path.join(
-                get_user_config_dir(), "dicts", "有道词语辨析.mdx"
-            )
+            mdx_path = os.path.join(get_user_config_dir(), "dicts", "有道词语辨析.mdx")
             record = query(mdx_path, data["word"])
             if record:
                 data["diffrentiation"] = record
@@ -155,7 +151,7 @@ class Ecdict:
             "gre": "GRE",
         }
 
-        tags = text.split()
+        tags: str = text.split()
         result = [tag_map.get(tag, tag) for tag in tags]
         data["tag"] = " ".join(result)
         return data

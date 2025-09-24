@@ -15,11 +15,14 @@ class AnkiDeckCreator:
             fields=[
                 {"name": "Word"},  # 词头
                 {"name": "Pronunciation"},  # 读音
-                {"name": "Front"},  # 音标 + 考试大纲
+                {"name": "Phonetic_Symbols"},  # 音标
+                {"name": "Examination_Syllabus"},  # 考试大纲
                 {"name": "ECDict"},  # Ecdict 中文解释
                 {"name": "Longman"},  # Longman
                 {"name": "Youdao"},  # 有道词典示例短语和句子
-                {"name": "AI"},  # AI助记、词源
+                {"name": "Etymology_AI"},  # 词源
+                {"name": "Associative_Mnemonic_AI"},  # 联想助记
+                {"name": "Homophone_Mnemonic_AI"},  # 谐音助记
                 {"name": "Discrimination"},  # 辨析
                 {"name": "Story"},  # 故事
             ],
@@ -30,7 +33,7 @@ class AnkiDeckCreator:
 <div class="card-front">
     <div class="header-center">
         <div class="word">{{Word}}</div>
-        <div class="front">{{Front}}</div>
+        <div class= "front">[<span class="phonetic_symbols">{{Phonetic_Symbols}}</span>] ({{Examination_Syllabus}})</div>
         <div class="pronunciation">[{{Pronunciation}}]</div>
     </div>
 </div>
@@ -41,7 +44,11 @@ class AnkiDeckCreator:
 <div class="card-back">
     <div class="ecdict">{{ECDict}}</div>
     <hr class="dashed">
-    <div class="ai">{{AI}}</div>
+    <div class="ai">
+        <div class="etymology">{{Etymology_AI}}</div>
+        <div class="associative_mnemonic">{{Associative_Mnemonic_AI}}</div>
+        <div class="homophone_mnemonic">{{Homophone_Mnemonic_AI}}</div>
+    </div>
     <hr class="dashed">
     <div class="examples">{{Youdao}}</div>
     <hr class="dashed">
@@ -149,6 +156,10 @@ class AnkiDeckCreator:
     font-size: 0.90em;
 }
 
+.phonetic_symbols {
+    color: blue;
+}
+
 /* Back side */
 .card-back {
     margin-top: 20px;
@@ -226,9 +237,7 @@ class AnkiDeckCreator:
 
         return "<br>".join(parts)
 
-    def format_trans(
-        self, translation: str, tense: str, distribution: str
-    ) -> str:
+    def format_trans(self, translation: str, tense: str, distribution: str) -> str:
         """Add tense and distribution of each word in Translation part"""
         if not tense:
             # AI is disabled
@@ -271,12 +280,11 @@ class AnkiDeckCreator:
                 # 读音
                 f"[sound:{data.get('Pronunciation', '')}]",
                 # 音标 + 考试大纲 + 语料库词频: [ә'bændәn] (高考 四级 六级 考研 托福 GRE 2057/2182)
-                f"[<font color=blue>{data.get('ECDict', {}).get('phonetic', '')}</font>] ({data.get('ECDict', {}).get('tag', '')} {data.get('ECDict', {}).get('bnc', '')}/{data.get('ECDict', {}).get('frq', '')})",
+                f"{data.get('ECDict', {}).get('phonetic', '')}",
+                f"{data.get('ECDict', {}).get('tag', '')} {data.get('ECDict', {}).get('bnc', '')}/{data.get('ECDict', {}).get('frq', '')}",
                 # Ecdict 中文解释 + 释义分布 + 时态
                 self.format_trans(
-                    self.format_pos(
-                        data.get("ECDict", {}).get("translation", "")
-                    ),
+                    self.format_pos(data.get("ECDict", {}).get("translation", "")),
                     data.get("ECDict", {}).get("distribution", ""),
                     data.get("AI", {}).get("tenses", ""),
                 ),
@@ -284,12 +292,16 @@ class AnkiDeckCreator:
                 f"【英解】<br>{self.format_pos(data.get('ECDict', {}).get('definition', ''))}",
                 # 有道词典示例短语和句子
                 self.format_youdao(data.get("Youdao", {})),
-                # AI助记、词源
+                # AI词源、助记
                 ""
                 if not data.get("AI")
-                else f"【词源】<br>{data.get('AI', {}).get('origin', {}).get('etymology', '')}<br><br> \
-                【助记】<li>{data.get('AI', {}).get('origin', {}).get('mnemonic', {}).get('associative', '')}</li>\
-                <li>{data.get('AI', {}).get('origin', {}).get('mnemonic', {}).get('homophone', '')}</li>",
+                else f"【词源】<br>{data.get('AI', {}).get('origin', {}).get('etymology', '')}",
+                ""
+                if not data.get("AI")
+                else f"【联想助记】{data.get('AI', {}).get('origin', {}).get('mnemonic', {}).get('associative', '')}",
+                ""
+                if not data.get("AI")
+                else f"【谐音助记】{data.get('AI', {}).get('origin', {}).get('mnemonic', {}).get('homophone', '')}",
                 # 词语辨析
                 ""
                 if not data.get("ECDict", {}).get("diffrentiation", "")

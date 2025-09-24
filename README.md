@@ -55,30 +55,33 @@
 pip install apkger
 ```
 
-在使用 apkger 之前，你需要先在 `config/config.json`文件中填写相关配置信息：
+在使用 apkger 之前，你需要先在 `config/config.toml`文件中填写相关配置信息：
 
-支持多个LLM服务提供商，使用了[litellm](https://github.com/BerriAI/litellm)来调用LLM，设置key时的环境变量名在[providers](https://docs.litellm.ai/docs/providers)查看
+支持多个LLM服务提供商，使用了[litellm](https://github.com/BerriAI/litellm)来调用LLM，详细配置`MODEL_PARAM`在[providers](https://docs.litellm.ai/docs/providers)查看
 
-```json
-{
-  "ENV": {
-    "OPENAI_API_KEY": "your-api-key-here",
-    "DEEPSEEK_API_KEY": ""
-  },
-  "API_BASE": "",
-  "MODEL": "gpt-4o",
-  "PROXY": "",
-  "EUDIC_TOKEN": "your-eudic-token",
-  "EUDIC_ID": "0",
-  "DECK_NAME": "anki_packager"
-}
+```toml
+PROXY = ""
+EUDIC_TOKEN = ""
+EUDIC_ID = "0"
+DECK_NAME = "anki_packager"
+
+[[MODEL_PARAM]]
+model = "gemini/gemini-2.5-flash" 
+api_key = "GEMINI_API_KEY"
+rpm = 10 # 每分钟请求次数
+
+# [[MODEL_PARAM]]
+# model = "openai/GLM-4-Flash"
+# api_key = ""
+# api_base = "https://open.bigmodel.cn/api/paas/v4/"
+# rpm = 200
 ```
 
 - 如果需要 AI 功能，需配置：
-  - `ENV`内的`KEY`
-    填写一个就足以
-  - `MODEL`
-  - `API_BASE`
+  - `MODEL_PARAM`
+  - `model`
+    Provider Route on LiteLLM + Model ID
+  - `api_base`
     使用OpenAI-Compatible Endpoints需要填写，其余时刻不需要
   - `PROXY`
     在无法连接至LLM提供商时
@@ -159,7 +162,7 @@ make build
 # 第一次运行容器下载词典（需要一点时间）
 make run
 
-# 进入容器（注意！需要在主机先配置 config/config.json）
+# 进入容器（注意！需要在主机先配置 config/config.toml）
 # 在容器中运行 anki_packager，生成的牌组会保存在当前目录中
 make shell
 ```

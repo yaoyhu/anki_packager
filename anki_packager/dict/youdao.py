@@ -17,7 +17,7 @@ class YoudaoScraper:
         }
         self.tmp = tempfile.mkdtemp()
 
-    def _get_audio(self, word: str):
+    async def _get_audio(self, word: str):
         """return the filename of the audio and the temp directory that needs to be cleaned up"""
         filename = os.path.join(self.tmp, f"{word}.mp3")
         tts = gTTS(text=word, lang="en")
@@ -33,7 +33,7 @@ class YoudaoScraper:
         except Exception as e:
             logger.error(f"音频临时文件夹 {self.tmp} 清理失败: {e}")
 
-    def get_word_info(self, word: str) -> Optional[Dict]:
+    async def get_word_info(self, word: str) -> Optional[Dict]:
         try:
             params = {"word": word, "lang": "en"}
 
