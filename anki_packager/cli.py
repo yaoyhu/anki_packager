@@ -25,6 +25,7 @@ from anki_packager.packager.deck import AnkiDeckCreator
 
 MAX_RETRIES = 3  # 最大重试次数
 RETRY_DELAY = 2  # 每次重试前的等待时间（秒）
+CONCURRENCY_LIMIT = 40  # 并发数
 
 
 def create_signal_handler(anki, youdao, audio_files, DECK_NAME, pbar):
@@ -300,15 +301,19 @@ async def process_word(word, ai, anki, youdao, ecdict, audio_files, pbar):
     return True
 
 
+semaphore = asyncio.Semaphore(CONCURRENCY_LIMIT)
+
+
 async def process_word_async(word, ai, anki, youdao, ecdict, audio_files, pbar):
     """
     包含了重试和退避逻辑
     """
     for attempt in range(MAX_RETRIES):
         try:
-            result = await process_word(
-                word, ai, anki, youdao, ecdict, audio_files, pbar
-            )
+            async with semaphore:
+                result = await process_word(
+                    word, ai, anki, youdao, ecdict, audio_files, pbar
+                )
             return result
         except Exception as e:
             logger.warning(
