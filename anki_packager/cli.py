@@ -12,7 +12,7 @@ from anki_packager.utils import get_user_config_dir
 from anki_packager.logger import logger
 
 ### AI
-from anki_packager.ai import MODEL_DICT
+from anki_packager.ai import llm
 
 ### Dictionaries
 from anki_packager.dict.youdao import YoudaoScraper
@@ -67,14 +67,6 @@ def main():
         help="Use EUDIC book instead of vocabulary.txt",
     )
 
-    parser.add_argument(
-        "--openai_key",
-        dest="openai_key",
-        type=str,
-        default="",
-        help="OpenAI api key",
-    )
-
     # support user-defined txt file: ./prog --txt demo.txt
     parser.add_argument(
         "--txt",
@@ -83,16 +75,7 @@ def main():
         help="Use a custom txt file instead of vocabulary.txt",
     )
 
-    parser.add_argument(
-        "--gemini_key",
-        dest="gemini_key",
-        type=str,
-        help="Google Gemini api key",
-    )
-
-    parser.add_argument(
-        "--model", dest="model", type=str, help="custome AI model"
-    )
+    parser.add_argument("--model", dest="model", type=str, help="custome AI model")
 
     parser.add_argument(
         "-p",
@@ -120,7 +103,7 @@ def main():
     ## 1. read config.json
     with open(os.path.join(config_path, "config.json"), "r") as ai_cfg:
         cfg = json.load(ai_cfg)
-        API_KEY = cfg["API_KEY"]
+        ENV = cfg["ENV"]
         PROXY = cfg["PROXY"]
         API_BASE = cfg["API_BASE"]
         MODEL = cfg["MODEL"]
@@ -172,29 +155,20 @@ def main():
             logger.error("未设置 AI 模型，请在配置文件或使用 --model 参数指定")
             exit(1)
 
-        # 检查模型是否在支持列表中
-        if MODEL not in MODEL_DICT:
-            logger.error(f"目前只支持的模型有：{', '.join(MODEL_DICT.keys())}")
-            exit(1)
+        # 导入环境变量
+        for key, value in ENV.items():
+            if key in os.environ:
+                logger.info(f"环境变量 '{key}' 已存在，将被配置文件中的值覆盖。")
 
-        # 根据模型类型设置对应的 API 密钥
-        model_class = MODEL_DICT[MODEL].__module__.split(".")[-1]
-        if model_class == "gpt":
-            API_KEY = options.openai_key or env.get("OPENAI_API_KEY") or API_KEY
-        elif model_class == "deepseek":
-            API_KEY = (
-                options.deepseek_key or env.get("DEEPSEEK_API_KEY") or API_KEY
-            )
-        elif model_class == "gemini":
-            API_KEY = options.gemini_key or env.get("GEMINI_API_KEY") or API_KEY
+            if value and isinstance(value, str):
+                os.environ[key] = value
+                logger.info(f"成功加载 '{key}' 到环境变量。")
+            else:
+                logger.debug(f"跳过 '{key}'，因为其值为空或格式不正确。")
 
-        if not API_KEY:
-            logger.error(f"缺少{model_class} API 密钥")
-            exit(1)
-
-        # 5. 初始化 AI 模型
+        # 初始化 AI 模型
         try:
-            ai = MODEL_DICT[MODEL](MODEL, API_KEY, API_BASE)
+            ai = llm(MODEL, API_BASE)
             logger.info(f"当前使用的 AI 模型: {MODEL}")
         except Exception as e:
             logger.error(f"初始化 AI 模型失败: {e}")

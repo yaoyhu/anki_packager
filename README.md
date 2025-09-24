@@ -57,19 +57,32 @@ pip install apkger
 
 在使用 apkger 之前，你需要先在 `config/config.json`文件中填写相关配置信息：
 
+支持多个LLM服务提供商，使用了[litellm](https://github.com/BerriAI/litellm)来调用LLM，设置key时的环境变量名在[providers](https://docs.litellm.ai/docs/providers)查看
+
 ```json
 {
-  "API_KEY": "your-api-key-here",
-  "API_BASE": "https://api.openai.com/v1",
+  "ENV": {
+    "OPENAI_API_KEY": "your-api-key-here",
+    "DEEPSEEK_API_KEY": ""
+  },
+  "API_BASE": "",
   "MODEL": "gpt-4o",
-  "PROXY": "127.0.0.1:7890",
+  "PROXY": "",
   "EUDIC_TOKEN": "your-eudic-token",
   "EUDIC_ID": "0",
   "DECK_NAME": "anki_packager"
 }
 ```
 
-- 如果需要 AI 功能，必须配置 `API_KEY`、`MODEL`、`API_BASE`和 `PROXY`
+- 如果需要 AI 功能，需配置：
+  - `ENV`内的`KEY`
+    填写一个就足以
+  - `MODEL`
+  - `API_BASE`
+    使用OpenAI-Compatible Endpoints需要填写，其余时刻不需要
+  - `PROXY`
+    在无法连接至LLM提供商时
+
 - 如果需要使用欧路词典生词本：先按照[欧陆官方获取](https://my.eudic.net/OpenAPI/Authorization) TOKEN，然后使用`apkger --eudicid` 选择 ID 写入配置文件
 
 ### 下载字典

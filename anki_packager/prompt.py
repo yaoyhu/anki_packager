@@ -19,9 +19,3 @@ PROMPT = """
     注意事项：
     1. 在 word_forms 中，只填写客观存在的词形，不要随意捏造或添加不存在的词形。并且只包含英文，不要加入中文注解。
 """
-
-prompts = {
-    "openai": PROMPT,
-    "gemini": PROMPT,
-    "deepseek": PROMPT,
-}

@@ -29,10 +29,10 @@ def initialize_config():
 
     # Default configuration
     default_config = {
-        "API_KEY": "",
+        "ENV": {"OPENAI_API_KEY": "", "DEEPSEEK_API_KEY": ""},
         "API_BASE": "",
         "MODEL": "",
-        "PROXY": "127.0.0.1:7890",
+        "PROXY": "",  # 删掉默认避免llm请求出错
         "EUDIC_TOKEN": "",
         "EUDIC_ID": "0",
         "DECK_NAME": "anki-packager",
