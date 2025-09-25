@@ -39,9 +39,6 @@ class WordExplanation(BaseModel):
     story: Story
 
 
-
-
-
 class llm:
     def __init__(self, model_param: list):
         model_list = [

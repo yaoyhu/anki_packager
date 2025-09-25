@@ -11,9 +11,9 @@ logging.basicConfig(
 )
 
 litellm_logger = logging.getLogger("LiteLLM")
-litellm_logger.setLevel(logging.ERROR)
+litellm_logger.setLevel(logging.WARNING)
 litellm_logger = logging.getLogger("LiteLLM Router")
-litellm_logger.setLevel(logging.ERROR)
+litellm_logger.setLevel(logging.WARNING)
 
 logging.getLogger("httpx").setLevel(logging.WARNING)
 logger = logging.getLogger(__name__)

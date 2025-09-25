@@ -1,8 +1,9 @@
+import asyncio
 import os
 import re
 import shutil
 import tempfile
-import requests
+import aiohttp
 from gtts import gTTS
 from bs4 import BeautifulSoup
 from typing import Dict, Optional
@@ -12,10 +13,24 @@ from anki_packager.logger import logger
 class YoudaoScraper:
     def __init__(self):
         self.base_url = "https://m.youdao.com/result"
-        self.headers = {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3"
-        }
         self.tmp = tempfile.mkdtemp()
+
+    async def __aenter__(self):
+        """进入 async with 时被调用"""
+        self._session = aiohttp.ClientSession(
+            headers={
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3"
+            }
+        )
+        return self  # 返回实例本身
+
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        """离开 async with 时被调用，确保 Session 被关闭"""
+        await self._session.close()
+        try:
+            self._clean_temp_dir()
+        except Exception as e:
+            logger.error(f"Error cleaning up audio files: {e}")
 
     async def _get_audio(self, word: str):
         """return the filename of the audio and the temp directory that needs to be cleaned up"""
@@ -37,10 +52,10 @@ class YoudaoScraper:
         try:
             params = {"word": word, "lang": "en"}
 
-            response = requests.get(self.base_url, params=params, headers=self.headers)
-            response.raise_for_status()
-
-            soup = BeautifulSoup(response.text, "html.parser")
+            async with self._session.get(self.base_url, params=params) as response:
+                response.raise_for_status()
+                r_text = await response.text()
+                soup = BeautifulSoup(r_text, "html.parser")
 
             result = {
                 "word": word,
@@ -117,7 +132,7 @@ class YoudaoScraper:
 
             return result
 
-        except requests.exceptions.RequestException as e:
+        except aiohttp.ClientError as e:
             logger.error(f"Request error: {e}")
             return None
         except Exception as e:
@@ -127,5 +142,5 @@ class YoudaoScraper:
 
 if __name__ == "__main__":
     scraper = YoudaoScraper()
-    result = scraper.get_word_info("variable")
+    result = asyncio.run(scraper.get_word_info("variable"))
     print(result)

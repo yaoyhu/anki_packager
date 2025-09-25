@@ -1,6 +1,5 @@
-import requests
 from anki_packager.logger import logger
-
+import aiohttp
 
 # https://my.eudic.net/OpenAPI/doc_api_study#-studylistapi-getcategory
 
@@ -20,21 +19,24 @@ class EUDIC:
 
         self.words_url = "https://api.frdic.com/api/open/v1/studylist/words/"
 
-    def get_studylist(self):
-        response = requests.get(self.studylist_url, headers=self.header)
-        self.check_token(response.status_code)
+    async def get_studylist(self):
+        async with aiohttp.request(
+            "GET", self.studylist_url, headers=self.header
+        ) as response:
+            self.check_token(response.status)
+            json = await response.json()
+            # show list id
+            for book in json["data"]:
+                logger.info(f"id: {book['id']}, name: {book['name']}")
 
-        # show list id
-        for book in response.json()["data"]:
-            logger.info(f"id: {book['id']}, name: {book['name']}")
+            return json
 
-        return response.json()
-
-    def get_words(self):
+    async def get_words(self):
         url = self.words_url + str(self.id) + "?language=en&category_id=0"
-        response = requests.get(url, headers=self.header)
-        self.check_token(response.status_code)
-        return response.json()
+        async with aiohttp.request("GET", url, headers=self.header) as response:
+            self.check_token(response.status)
+            json = await response.json()
+            return json
 
     def check_token(self, status_code: int):
         if status_code != 200:

@@ -3,7 +3,7 @@ import asyncio
 import os
 from os import environ as env
 import tomllib
-from tqdm import tqdm
+from tqdm.asyncio import tqdm
 import signal
 
 ### config
@@ -28,13 +28,11 @@ RETRY_DELAY = 2  # 每次重试前的等待时间（秒）
 CONCURRENCY_LIMIT = 40  # 并发数
 
 
-def create_signal_handler(anki, youdao, audio_files, DECK_NAME, pbar):
+def create_signal_handler(anki, audio_files, DECK_NAME):
     def signal_handler(sig, frame):
-        pbar.close()
         logger.info("\033[1;31m程序被 <Ctrl-C> 异常中止...\033[0m")
         logger.info("正在写入已处理完毕的卡片...")
         anki.write_to_file(f"{DECK_NAME}.apkg", audio_files)
-        youdao._clean_temp_dir()
         logger.info("正在退出...")
         exit(0)
 
@@ -120,7 +118,7 @@ async def main():
     if options.eudicid:
         logger.info("设置：仅读取欧路词典 ID")
         eudic = EUDIC(EUDIC_TOKEN, EUDIC_ID)
-        eudic.get_studylist()
+        await eudic.get_studylist()
         exit(0)
 
     # only add word into vocabulary.txt line by line
@@ -139,7 +137,6 @@ async def main():
 
     anki = AnkiDeckCreator(f"{DECK_NAME}")
     ecdict = Ecdict()
-    youdao = YoudaoScraper()
 
     # AI 配置
     if options.disable_ai:
@@ -164,7 +161,8 @@ async def main():
     if options.eudic:
         logger.info("配置: 对欧路词典生词本单词进行处理...")
         eudic = EUDIC(EUDIC_TOKEN, EUDIC_ID)
-        eudic_words = eudic.get_words()["data"]
+        r = await eudic.get_words()
+        eudic_words = r["data"]
         for word in eudic_words:
             words.append(word["word"])
         number_words = len(words)
@@ -207,55 +205,49 @@ async def main():
             exit(1)
         vocab.close()
 
-    pbar = tqdm(total=number_words, desc="开始处理")
     signal.signal(
         signal.SIGINT,
-        create_signal_handler(anki, youdao, audio_files, DECK_NAME, pbar),
+        create_signal_handler(anki, audio_files, DECK_NAME),
     )
+    async with YoudaoScraper() as youdao:
+        logger.info(f"开始并发处理 {len(words)} 个单词...")
+        with tqdm(total=len(words), desc="开始处理") as pbar:
+            tasks = [
+                task_wrapper(pbar, word, ai, anki, youdao, ecdict, audio_files)
+                for word in words
+            ]
+            results = await asyncio.gather(*tasks, return_exceptions=True)
 
-    tasks = [
-        process_word_async(word, ai, anki, youdao, ecdict, audio_files, pbar)
-        for word in words
-    ]
+        successful_results = []
+        failed_words = []
 
-    logger.info(f"开始并发处理 {len(words)} 个单词...")
+        for word, result in zip(words, results):
+            if isinstance(result, Exception):
+                failed_words.append(word)
+                logger.error(f"未能成功处理 '{word}'. 错误: {result}")
+            else:
+                successful_results.append(result)
 
-    results = await asyncio.gather(*tasks, return_exceptions=True)
-
-    successful_results = []
-    failed_words = []
-
-    for word, result in zip(words, results):
-        if isinstance(result, Exception):
-            failed_words.append(word)
-            logger.error(f"未能成功处理 '{word}'. 错误: {result}")
+        if failed_words:
+            failed_file = os.path.join(config_path, "failed.txt")
+            logger.error(
+                f"共 {len(failed_words)} 个单词处理失败，将它们写入 {failed_file}"
+            )
+            with open(failed_file, "w", encoding="utf-8") as f:
+                for word in failed_words:
+                    f.write(f"{word}\n")
         else:
-            successful_results.append(result)
+            logger.info("所有单词均已成功处理！")
 
-    if failed_words:
-        failed_file = os.path.join(config_path, "failed.txt")
-        logger.error(f"共 {len(failed_words)} 个单词处理失败，将它们写入 {failed_file}")
-        with open(failed_file, "w", encoding="utf-8") as f:
-            for word in failed_words:
-                f.write(f"{word}\n")
-    else:
-        logger.info("所有单词均已成功处理！")
-
-    # 关闭 pbar 避免多输出一次
-    pbar.close()
-    try:
-        if anki.added:
-            anki.write_to_file(f"{DECK_NAME}.apkg", audio_files)
-            logger.info(f"牌组生成完毕，请打开 {DECK_NAME}.apkg")
-    except Exception as e:
-        logger.error(f"Error saving Anki deck: {e}")
-    try:
-        youdao._clean_temp_dir()
-    except Exception as e:
-        logger.error(f"Error cleaning up audio files: {e}")
+        try:
+            if anki.added:
+                anki.write_to_file(f"{DECK_NAME}.apkg", audio_files)
+                logger.info(f"牌组生成完毕，请打开 {DECK_NAME}.apkg")
+        except Exception as e:
+            logger.error(f"Error saving Anki deck: {e}")
 
 
-async def process_word(word, ai, anki, youdao, ecdict, audio_files, pbar):
+async def process_word(word, ai, anki, youdao, ecdict, audio_files):
     data = {}
     data["Word"] = word
 
@@ -296,24 +288,20 @@ async def process_word(word, ai, anki, youdao, ecdict, audio_files, pbar):
 
     # Add note to deck
     anki.add_note(data)
-    pbar.update(1)
-    pbar.set_description(f"单词 {word} 添加成功")
     return True
 
 
 semaphore = asyncio.Semaphore(CONCURRENCY_LIMIT)
 
 
-async def process_word_async(word, ai, anki, youdao, ecdict, audio_files, pbar):
+async def process_word_with_retries(word, ai, anki, youdao, ecdict, audio_files):
     """
     包含了重试和退避逻辑
     """
     for attempt in range(MAX_RETRIES):
         try:
             async with semaphore:
-                result = await process_word(
-                    word, ai, anki, youdao, ecdict, audio_files, pbar
-                )
+                result = await process_word(word, ai, anki, youdao, ecdict, audio_files)
             return result
         except Exception as e:
             logger.warning(
@@ -325,6 +313,21 @@ async def process_word_async(word, ai, anki, youdao, ecdict, audio_files, pbar):
                 logger.error(f"'{word}' 在所有 {MAX_RETRIES} 次尝试后最终失败。")
                 raise
             await asyncio.sleep(RETRY_DELAY)
+
+
+async def task_wrapper(pbar, word, ai, anki, youdao, ecdict, audio_files):
+    """
+    运行带重试逻辑的任务，并确保进度条在最后总会更新。
+    """
+    try:
+        r = await process_word_with_retries(word, ai, anki, youdao, ecdict, audio_files)
+        pbar.set_description(f"'{word}' 添加成功")
+        return r
+    except Exception:
+        pbar.set_description(f"'{word}' 处理失败")
+        raise
+    finally:
+        pbar.update(1)
 
 
 if __name__ == "__main__":
