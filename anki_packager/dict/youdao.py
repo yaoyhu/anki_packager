@@ -35,8 +35,15 @@ class YoudaoScraper:
     async def _get_audio(self, word: str):
         """return the filename of the audio and the temp directory that needs to be cleaned up"""
         filename = os.path.join(self.tmp, f"{word}.mp3")
-        tts = gTTS(text=word, lang="en")
-        tts.save(filename)
+        loop = asyncio.get_running_loop()
+
+        def generate_and_save_audio():
+            """A wrapper function for the blocking gTTS calls."""
+            tts = gTTS(text=word, lang="en")
+            tts.save(filename)
+
+        await loop.run_in_executor(None, generate_and_save_audio)
+
         return filename
 
     def _clean_temp_dir(self):
@@ -63,72 +70,76 @@ class YoudaoScraper:
                 "example_sentences": [],
             }
 
-            # Extract example phrases
-            phrase_ul = soup.find_all("ul", class_="")[0]
-            if phrase_ul:
-                phrase_lis = phrase_ul.find_all("li", class_="mcols-layout")
-                for li in phrase_lis:
-                    index = (
-                        li.find("span", class_="grey").text.strip()
-                        if li.find("span", class_="grey")
-                        else None
-                    )
-                    col2_element = li.find("div", class_="col2")
-                    point_element = col2_element.find("a", class_="point")
-                    sen_phrase_element = col2_element.find("p", class_="sen-phrase")
-                    english = None
-                    chinese = None
-                    if point_element and sen_phrase_element:
-                        english = point_element.text.strip()
-                        chinese = sen_phrase_element.text.strip()
-                    else:
-                        content = col2_element.text.strip()
-                        parts = re.split(r"([;；])", content)
-                        parts = [
-                            s.strip()
-                            for s in parts
-                            if s.strip() and s not in [";", "；"]
-                        ]
-                        if len(parts) > 1:
-                            english = parts[0]
-                            chinese = "".join(parts[1:])
-                        else:
-                            english = content
 
-                    result["example_phrases"].append(
-                        {
-                            "index": index,
-                            "english": english,
-                            "chinese": chinese,
-                        }
-                    )
+            all_uls = soup.find_all("ul", class_="")
+            # Extract example phrases
+            if len(all_uls) > 0:
+                phrase_ul = all_uls[0]
+                if phrase_ul:
+                    phrase_lis = phrase_ul.find_all("li", class_="mcols-layout")
+                    for li in phrase_lis:
+                        index = (
+                            li.find("span", class_="grey").text.strip()
+                            if li.find("span", class_="grey")
+                            else None
+                        )
+                        col2_element = li.find("div", class_="col2")
+                        point_element = col2_element.find("a", class_="point")
+                        sen_phrase_element = col2_element.find("p", class_="sen-phrase")
+                        english = None
+                        chinese = None
+                        if point_element and sen_phrase_element:
+                            english = point_element.text.strip()
+                            chinese = sen_phrase_element.text.strip()
+                        else:
+                            content = col2_element.text.strip()
+                            parts = re.split(r"([;；])", content)
+                            parts = [
+                                s.strip()
+                                for s in parts
+                                if s.strip() and s not in [";", "；"]
+                            ]
+                            if len(parts) > 1:
+                                english = parts[0]
+                                chinese = "".join(parts[1:])
+                            else:
+                                english = content
+
+                        result["example_phrases"].append(
+                            {
+                                "index": index,
+                                "english": english,
+                                "chinese": chinese,
+                            }
+                        )
 
             # Extract example sentences
-            sentence_ul = soup.find_all("ul", class_="")[1]
-            if sentence_ul:
-                sentence_lis = sentence_ul.find_all("li", class_="mcols-layout")
-                for li in sentence_lis:
-                    index = (
-                        li.find("span", class_="grey index").text.strip()
-                        if li.find("span", class_="grey index")
-                        else None
-                    )
-                    english_element = li.find("div", class_="sen-eng")
-                    chinese_element = li.find("div", class_="sen-ch")
-                    source_element = li.find("div", class_="secondary")
+            if len(all_uls) > 1:
+                sentence_ul = all_uls[1]
+                if sentence_ul:
+                    sentence_lis = sentence_ul.find_all("li", class_="mcols-layout")
+                    for li in sentence_lis:
+                        index = (
+                            li.find("span", class_="grey index").text.strip()
+                            if li.find("span", class_="grey index")
+                            else None
+                        )
+                        english_element = li.find("div", class_="sen-eng")
+                        chinese_element = li.find("div", class_="sen-ch")
+                        source_element = li.find("div", class_="secondary")
 
-                    english = english_element.text.strip() if english_element else None
-                    chinese = chinese_element.text.strip() if chinese_element else None
-                    source = source_element.text.strip() if source_element else None
+                        english = english_element.text.strip() if english_element else None
+                        chinese = chinese_element.text.strip() if chinese_element else None
+                        source = source_element.text.strip() if source_element else None
 
-                    result["example_sentences"].append(
-                        {
-                            "index": index,
-                            "english": english,
-                            "chinese": chinese,
-                            "source": source,
-                        }
-                    )
+                        result["example_sentences"].append(
+                            {
+                                "index": index,
+                                "english": english,
+                                "chinese": chinese,
+                                "source": source,
+                            }
+                        )
 
             return result
 
@@ -141,6 +152,8 @@ class YoudaoScraper:
 
 
 if __name__ == "__main__":
-    scraper = YoudaoScraper()
-    result = asyncio.run(scraper.get_word_info("variable"))
-    print(result)
+    async def main():
+        async with YoudaoScraper() as youdao:
+            result = asyncio.run(youdao.get_word_info("variable"))
+            print(result)
+    asyncio.run(main())
