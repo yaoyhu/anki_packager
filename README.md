@@ -55,9 +55,9 @@
 pip install apkger
 ```
 
-在使用 apkger 之前，你需要先在 `config/config.toml`文件中填写相关配置信息：
+在使用 apkger 之前，你需要先在 `config/config.toml` 文件中填写相关配置信息：
 
-支持多个LLM服务提供商，使用了[litellm](https://github.com/BerriAI/litellm)来调用LLM，详细配置`MODEL_PARAM`在[providers](https://docs.litellm.ai/docs/providers)查看
+本项目使用 [litellm](https://github.com/BerriAI/litellm) 统一调用 LLM 服务。关于 `MODEL_PARAM` 的详细配置方法，请参考 [LiteLLM Providers 文档](https://docs.litellm.ai/docs/providers)。
 
 ```toml
 PROXY = ""
@@ -66,25 +66,26 @@ EUDIC_ID = "0"
 DECK_NAME = "anki_packager"
 
 [[MODEL_PARAM]]
-model = "gemini/gemini-2.5-flash" 
+model = "gemini/gemini-2.5-flash"
 api_key = "GEMINI_API_KEY"
-rpm = 10 # 每分钟请求次数
+rpm = 10                          # 每分钟请求次数
 
+### OpenAI-Compatible Endpoints 示例
 # [[MODEL_PARAM]]
-# model = "openai/GLM-4-Flash"
-# api_key = ""
-# api_base = "https://open.bigmodel.cn/api/paas/v4/"
+# model = "openai/gpt-4o"
+# api_key = "OPENAI_API_KEY"
+# api_base = "YOUR_API_BASE"
 # rpm = 200
 ```
 
-- 如果需要 AI 功能，需配置：
-  - `MODEL_PARAM`
-  - `model`
-    Provider Route on LiteLLM + Model ID
-  - `api_base`
-    使用OpenAI-Compatible Endpoints需要填写，其余时刻不需要
-  - `PROXY`
-    在无法连接至LLM提供商时
+下面是关于配置文件中各参数的详细说明：
+
+- `MODEL_PARAM`:
+  - `model`: Provider Route on LiteLLM + Model ID
+  - `api_key`: 对应模型的 API 密钥。
+  - `api_base`: (可选) 仅在模型为 OpenAI-Compatible Endpoints 时需要填写
+  - `rpm`: (可选) 每分钟的请求次数限制，用于控制 API 调用频率。
+- `PROXY`: 如果你无法直接连接到 AI 服务提供商，可以在这里设置代理服务器地址
 
 - 如果需要使用欧路词典生词本：先按照[欧陆官方获取](https://my.eudic.net/OpenAPI/Authorization) TOKEN，然后使用`apkger --eudicid` 选择 ID 写入配置文件
 
@@ -95,7 +96,7 @@ rpm = 10 # 每分钟请求次数
 - Linux/MacOS: `~/.config/anki_packager/dicts/`
 - Windows: `C:\Users\<用户名>\AppData\Roaming\anki_packager\dicts\`
 
-字典数据（感谢[skywind）](https://github.com/skywind3000)下载地址:
+字典数据（感谢 [skywind）](https://github.com/skywind3000)下载地址:
 
 - [stardict.7z](https://github.com/skywind3000/ECDICT/raw/refs/heads/master/stardict.7z)
 - [单词释义比例](https://pan.baidu.com/s/1kUItx8j)
@@ -177,9 +178,9 @@ make shell
 - [x] ~~支持 SiliconFlow、Gemini~~
 - [x] ~~重新支持 Docker~~
 - [x] ~~发布到 PyPI~~
+- [x] ~~训练现成的数据包发布 release~~ @Initsnow
 - [ ] 支持更多软件生词导出
 - [ ] 支持 Longman 词典
-- [ ] 训练现成的数据包发布 release
 - [ ] 开发 GUI
 
 ## Thanks

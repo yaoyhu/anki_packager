@@ -103,7 +103,7 @@ async def main():
     config_dir = get_user_config_dir()
     config_path = os.path.join(config_dir, "config")
 
-    ## 1. read config.json
+    ## 1. read config.toml
     with open(os.path.join(config_path, "config.toml"), "rb") as f:
         cfg = tomllib.load(f)
         MODEL_PARAM = cfg["MODEL_PARAM"]

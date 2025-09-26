@@ -27,21 +27,23 @@ def initialize_config():
     os.makedirs(dicts_dir, exist_ok=True)
 
     # Default configuration in TOML format
-    default_config = """PROXY = ""
+    default_config = """
+PROXY = ""
 EUDIC_TOKEN = ""
 EUDIC_ID = "0"
 DECK_NAME = "anki_packager"
 
 [[MODEL_PARAM]]
-model = "gemini-2.5-flash" 
+model = "gemini/gemini-2.5-flash"
 api_key = "GEMINI_API_KEY"
-rpm = 10 # 每分钟请求次数
+rpm = 10                          # 每分钟请求次数
 
 # [[MODEL_PARAM]]
-# model = "openai/GLM-4-Flash"
-# api_key = ""
-# api_base = "https://open.bigmodel.cn/api/paas/v4/"
+# model = "openai/gpt-4o"
+# api_key = "OPENAI_API_KEY"
+# api_base = "YOUR_API_BASE"
 # rpm = 200
+
 """
 
     config_path = os.path.join(config_subdir, "config.toml")
