@@ -38,10 +38,10 @@
 
 - 正面：词头、发音、音标 + 考试大纲标签（如 中高考、CET4、CET6、GRE 等）
 - 背面：
-  - 释义：中文（ECDICT）、时态（AI）、释义和词性比例（[《有道词语辨析》加强版](https://skywind.me/blog/archives/2941)）
+  - 释义：中文（ECDICT）、时态（AI）、释义和词性比例（[单词释义比例词典-带词性](https://mdx.mdict.org/按词典语种来分类/词频/单词释义比例词典/单词释义比例词典-带词性.mdx)） 
   - AI 生成词根 + 辅助记忆（联想记忆 + 谐音记忆）
   - 短语 + 例句（有道爬虫）
-  - 单词辨析（[单词释义比例词典](https://skywind.me/blog/archives/2938)）
+  - 单词辨析（[《有道词语辨析》加强版](https://pan.baidu.com/s/1gff2tdp)）
   - 英文释义（目前来自 ECDICT）+ AI 生成故事
 
 <img src="./images/卡片预览.png" alt="背面 " style="zoom:50%;" />
@@ -99,8 +99,8 @@ rpm = 10                          # 每分钟请求次数
 字典数据（感谢 [skywind）](https://github.com/skywind3000)下载地址:
 
 - [stardict.7z](https://github.com/skywind3000/ECDICT/raw/refs/heads/master/stardict.7z)
-- [单词释义比例](https://pan.baidu.com/s/1kUItx8j)
-- [有道词语辨析](https://pan.baidu.com/s/1gff2tdp)
+- [单词释义比例词典-带词性](https://mdx.mdict.org/按词典语种来分类/词频/单词释义比例词典/单词释义比例词典-带词性.mdx)
+- [有道词语辨析](https://pan.baidu.com/s/1gff2tdp)：**需要手动解压**放入 `config/dicts`
 
 字典下载完毕后，解压和处理交给 anki_packager 即可。
 
