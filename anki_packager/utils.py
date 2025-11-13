@@ -1,16 +1,15 @@
 import os
 import platform
 
-# import requests
-# import shutil
-# from anki_packager.logger import logger
+from anki_packager.logger import logger
 
 
 def get_user_config_dir():
     """
     Returns the platform-specific user configuration directory.
-    Windows: %APPDATA%/anki_packager
-    macOS/Linux: ~/.config/anki_packager
+
+    - Windows: %APPDATA%/anki_packager
+    - macOS/Linux: ~/.config/anki_packager
     """
     if platform.system() == "Windows":
         return os.path.join(os.environ.get("APPDATA", ""), "anki_packager")
@@ -19,6 +18,22 @@ def get_user_config_dir():
 
 
 def initialize_config():
+    """
+    Make sure user config dir exists.
+
+    Example:
+    ~/.config/anki_packager/
+        ├── config
+        │   ├── config.toml
+        │   ├── failed.txt
+        │   └── vocabulary.txt
+        └── dicts
+            ├── 单词释义比例词典-带词性.mdx
+            ├── 有道词语辨析.mdx
+            ├── stardict.7z
+            ├── stardict.csv
+            └── stardict.db
+    """
     config_dir = get_user_config_dir()
     os.makedirs(config_dir, exist_ok=True)
     config_subdir = os.path.join(config_dir, "config")
@@ -56,9 +71,9 @@ rpm = 10                          # 每分钟请求次数
         with open(vocab_path, "w", encoding="utf-8") as f:
             f.write("")
 
-    failed_path = os.path.join(config_subdir, "failed_path.txt")
+    failed_path = os.path.join(config_subdir, "failed.txt")
     if not os.path.exists(failed_path):
         with open(failed_path, "w", encoding="utf-8") as f:
-            f.write("")
+            f.write("reform\nopen\n")
 
-    print(f"\033[1;31m配置文件位于 {config_path} \033[0m")
+    logger.info(f"配置文件位于 {config_path}")
