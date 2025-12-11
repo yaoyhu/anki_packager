@@ -104,21 +104,20 @@ class AnkiDeckCreator:
 /* Dark mode colors */
 @media (prefers-color-scheme: dark) {
     :root {
-        --bg-color: #1e1e2e;
+        --bg-color: rgb(44, 44, 44);
         --text-color: #e0e0e0;
         --secondary-text: #b0b0b0;
         --tertiary-text: #a0c0c0;
         --highlight-color: #7cb8ff;
         --accent-color: #ff7c7c;
-        --divider-color: #444;
+        --divider-color: #555;
         --pos-color: #ff9e64;
         --cn-text-color: #d183e8;
         --phrase-color: #e0c080;
         
-        /* Dark mode card gradients */
-        --card-bg-start: #1a1a2e;
-        --card-bg-end: #1e1e2e;
-        --card-border-color: #3a3a4e;
+        --card-bg-start: rgb(44, 44, 44);
+        --card-bg-end: rgb(44, 44, 44);
+        --card-border-color: #555;
         
         /* Dark mode mnemonic colors */
         --etymology-color: #6BA4E8;
@@ -138,29 +137,28 @@ class AnkiDeckCreator:
         --story-chinese-bg: rgba(179, 127, 216, 0.08);
         
         /* Dark mode card backgrounds */
-        --card-section-bg: #2a2a3e;
-        --card-border: #3a3a4e;
+        --card-section-bg: rgb(44, 44, 44);
+        --card-border: #555;
     }
 }
 
 /* Night mode in Anki also triggers dark mode */
 .nightMode,
 .night_mode {
-    --bg-color: #1e1e2e;
+    --bg-color: rgb(44, 44, 44);
     --text-color: #e0e0e0;
     --secondary-text: #b0b0b0;
     --tertiary-text: #a0c0c0;
     --highlight-color: #7cb8ff;
     --accent-color: #ff7c7c;
-    --divider-color: #444;
+    --divider-color: #555;
     --pos-color: #ff9e64;
     --cn-text-color: #d183e8;
     --phrase-color: #e0c080;
     
-    /* Dark mode card gradients */
-    --card-bg-start: #1a1a2e;
-    --card-bg-end: #1e1e2e;
-    --card-border-color: #3a3a4e;
+    --card-bg-start: rgb(44, 44, 44);
+    --card-bg-end: rgb(44, 44, 44);
+    --card-border-color: #555;
     
     /* Dark mode mnemonic colors */
     --etymology-color: #6BA4E8;
@@ -180,18 +178,28 @@ class AnkiDeckCreator:
     --story-chinese-bg: rgba(179, 127, 216, 0.08);
     
     /* Dark mode card backgrounds */
-    --card-section-bg: #2a2a3e;
-    --card-border: #3a3a4e;
+    --card-section-bg: rgb(44, 44, 44);
+    --card-border: #555;
 }
 
 /* Base body styling */
-html {
+html,
+body {
     background-color: #f5f5f5;
 }
 
+@media (prefers-color-scheme: dark) {
+    html,
+    body {
+        background-color: rgb(44, 44, 44) !important;
+    }
+}
+
 .nightMode html,
-.night_mode html {
-    background-color: #1a1a2e;
+.night_mode html,
+.nightMode body,
+.night_mode body {
+    background-color: rgb(44, 44, 44) !important;
 }
 
 .card {
@@ -201,12 +209,12 @@ html {
     max-width: 1100px;
     width: 95%;
     margin: 20px auto;
-    background: var(--bg-color);
+    background: var(--bg-color) !important;
     color: var(--text-color);
     line-height: 1.8;
-    border-radius: 16px;
-    border: 1px solid var(--card-border-color);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+    border-radius: 0;
+    border: none;
+    box-shadow: none;
 }
 
 /* 虚线分隔符 */
@@ -222,7 +230,7 @@ html {
 .card-front {
     margin-bottom: 24px;
     padding: 24px 28px;
-    background: var(--card-section-bg);
+    background: var(--card-section-bg) !important;
     border-radius: 12px;
     border: 1px solid var(--card-border);
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
