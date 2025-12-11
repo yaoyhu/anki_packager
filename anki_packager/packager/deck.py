@@ -1,5 +1,6 @@
 import genanki
 import random
+import re
 
 
 class AnkiDeckCreator:
@@ -31,31 +32,28 @@ class AnkiDeckCreator:
                     "name": "Dictionary Card",
                     "qfmt": """
 <div class="card-front">
-    <div class="header-center">
-        <div class="word">{{Word}}</div>
-        <div class= "front">[<span class="phonetic_symbols">{{Phonetic_Symbols}}</span>] ({{Examination_Syllabus}})</div>
-        <div class="pronunciation">[{{Pronunciation}}]</div>
+    <div class="word-header">
+        <div class="word-main">{{Word}}</div>
+        <div class="word-meta">
+            <span class="pronunciation-group">
+                <div class="pronunciation">{{Pronunciation}}</div>
+                <span class="phonetic-text">/{{Phonetic_Symbols}}/</span>
+            </span>
+        </div>
+        <div class="exam-tags">{{Examination_Syllabus}}</div>
     </div>
 </div>
 """,
                     "afmt": """
 {{FrontSide}}
-<hr class="dashed">
 <div class="card-back">
     <div class="ecdict">{{ECDict}}</div>
-    <hr class="dashed">
-    <div class="ai">
-        <div class="etymology">{{Etymology_AI}}</div>
-        <div class="associative_mnemonic">{{Associative_Mnemonic_AI}}</div>
-        <div class="homophone_mnemonic">{{Homophone_Mnemonic_AI}}</div>
-    </div>
-    <hr class="dashed">
+    <div class="etymology">{{Etymology_AI}}</div>
+    <div class="associative_mnemonic">{{Associative_Mnemonic_AI}}</div>
+    <div class="homophone_mnemonic">{{Homophone_Mnemonic_AI}}</div>
     <div class="examples">{{Youdao}}</div>
-    <hr class="dashed">
     <div class="discrimination">{{Discrimination}}</div>
-    <hr class="dashed">
     <div class="longman">{{Longman}}</div>
-    <hr class="dashed">
     <div class="story">{{Story}}</div>
 </div>
 """,
@@ -71,123 +69,434 @@ class AnkiDeckCreator:
     --tertiary-text: #2F4F4F;
     --highlight-color: #0645AD;
     --accent-color: #990000;
-    --divider-color: #99a;
+    --divider-color: #ddd;
     --pos-color: #990000;
     --cn-text-color: #8B008B;
     --phrase-color: #8B4513;
+    
+    /* Card gradients */
+    --card-bg-start: #ffffff;
+    --card-bg-end: #f9fafb;
+    --card-border-color: #e5e7eb;
+    
+    /* Mnemonic section colors */
+    --etymology-color: #4A90E2;
+    --etymology-bg: rgba(74, 144, 226, 0.08);
+    --associative-color: #50C878;
+    --associative-bg: rgba(80, 200, 120, 0.08);
+    --homophone-color: #9B59B6;
+    --homophone-bg: rgba(155, 89, 182, 0.08);
+    
+    /* Target word highlight */
+    --target-word-color: #0D47A1;
+    --target-word-bg: rgba(255, 235, 59, 0.3);
+    --target-word-border: #0D47A1;
+    
+    /* Story section backgrounds */
+    --story-english-bg: rgba(6, 69, 173, 0.03);
+    --story-chinese-bg: rgba(139, 0, 139, 0.03);
+    
+    /* Card and section backgrounds */
+    --card-section-bg: #ffffff;
+    --card-border: #e6eaf0;
 }
 
 /* Dark mode colors */
 @media (prefers-color-scheme: dark) {
-    .card {
+    :root {
         --bg-color: #1e1e2e;
         --text-color: #e0e0e0;
         --secondary-text: #b0b0b0;
         --tertiary-text: #a0c0c0;
         --highlight-color: #7cb8ff;
         --accent-color: #ff7c7c;
-        --divider-color: #666;
+        --divider-color: #444;
         --pos-color: #ff9e64;
         --cn-text-color: #d183e8;
         --phrase-color: #e0c080;
+        
+        /* Dark mode card gradients */
+        --card-bg-start: #1a1a2e;
+        --card-bg-end: #1e1e2e;
+        --card-border-color: #3a3a4e;
+        
+        /* Dark mode mnemonic colors */
+        --etymology-color: #6BA4E8;
+        --etymology-bg: rgba(107, 164, 232, 0.15);
+        --associative-color: #6FD89A;
+        --associative-bg: rgba(111, 216, 154, 0.15);
+        --homophone-color: #B37FD8;
+        --homophone-bg: rgba(179, 127, 216, 0.15);
+        
+        /* Dark mode target word highlight */
+        --target-word-color: #00E5FF;
+        --target-word-bg: rgba(0, 229, 255, 0.2);
+        --target-word-border: #00E5FF;
+        
+        /* Dark mode story backgrounds */
+        --story-english-bg: rgba(107, 164, 232, 0.08);
+        --story-chinese-bg: rgba(179, 127, 216, 0.08);
+        
+        /* Dark mode card backgrounds */
+        --card-section-bg: #2a2a3e;
+        --card-border: #3a3a4e;
     }
 }
 
 /* Night mode in Anki also triggers dark mode */
-.nightMode {
+.nightMode,
+.night_mode {
     --bg-color: #1e1e2e;
     --text-color: #e0e0e0;
     --secondary-text: #b0b0b0;
     --tertiary-text: #a0c0c0;
     --highlight-color: #7cb8ff;
     --accent-color: #ff7c7c;
-    --divider-color: #666;
+    --divider-color: #444;
     --pos-color: #ff9e64;
     --cn-text-color: #d183e8;
     --phrase-color: #e0c080;
+    
+    /* Dark mode card gradients */
+    --card-bg-start: #1a1a2e;
+    --card-bg-end: #1e1e2e;
+    --card-border-color: #3a3a4e;
+    
+    /* Dark mode mnemonic colors */
+    --etymology-color: #6BA4E8;
+    --etymology-bg: rgba(107, 164, 232, 0.15);
+    --associative-color: #6FD89A;
+    --associative-bg: rgba(111, 216, 154, 0.15);
+    --homophone-color: #B37FD8;
+    --homophone-bg: rgba(179, 127, 216, 0.15);
+    
+    /* Dark mode target word highlight */
+    --target-word-color: #00E5FF;
+    --target-word-bg: rgba(0, 229, 255, 0.2);
+    --target-word-border: #00E5FF;
+    
+    /* Dark mode story backgrounds */
+    --story-english-bg: rgba(107, 164, 232, 0.08);
+    --story-chinese-bg: rgba(179, 127, 216, 0.08);
+    
+    /* Dark mode card backgrounds */
+    --card-section-bg: #2a2a3e;
+    --card-border: #3a3a4e;
+}
+
+/* Base body styling */
+html {
+    background-color: #f5f5f5;
+}
+
+.nightMode html,
+.night_mode html {
+    background-color: #1a1a2e;
 }
 
 .card {
-    font-family: Arial, sans-serif;
+    font-family: Georgia, "Times New Roman", Times, serif;
     text-align: left;
-    padding: 20px;
-    max-width: 800px;
-    margin: auto;
-    background-color: var(--bg-color);
+    padding: 24px;
+    max-width: 1100px;
+    width: 95%;
+    margin: 20px auto;
+    background: var(--bg-color);
     color: var(--text-color);
-    line-height: 1.6;
+    line-height: 1.8;
+    border-radius: 16px;
+    border: 1px solid var(--card-border-color);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 }
 
 /* 虚线分隔符 */
 .dashed {
     border: none;
-    border-top: 1px dashed var(--divider-color);
-    margin: 15px 0;
+    border-top: 1px solid var(--divider-color);
+    margin: 24px 0;
     width: 100%;
+    opacity: 0.3;
 }
 
-/* Front side */
+/* Front side - Cambridge Dictionary style */
 .card-front {
-    margin-bottom: 20px;
+    margin-bottom: 24px;
+    padding: 24px 28px;
+    background: var(--card-section-bg);
+    border-radius: 12px;
+    border: 1px solid var(--card-border);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 }
 
-/* Centered header section */
-.header-center {
-    text-align: center;
-    margin-bottom: 20px;
+/* Word header */
+.word-header {
+    text-align: left;
 }
 
-.word {
-    font-size: 2.2em;
-    font-weight: bold;
+.word-main {
+    font-size: 3em;
+    font-weight: 700;
     color: var(--text-color);
-    margin-bottom: 5px;
+    margin-bottom: 12px;
+    letter-spacing: -0.5px;
+    line-height: 1.1;
 }
 
-.pronunciation {
-    font-size: 1.1em;
-    color: var(--highlight-color);
-    margin-bottom: 10px;
+/* Pronunciation group with speaker icon */
+.word-meta {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
 }
 
-.front {
+.pronunciation-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 1.15em;
     color: var(--secondary-text);
-    margin-bottom: 15px;
-    font-size: 0.90em;
 }
 
-.phonetic_symbols {
-    color: blue;
+.speaker-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    opacity: 0.7;
+    transition: all 0.2s;
+    user-select: none;
+    color: var(--secondary-text);
+}
+
+.speaker-icon svg {
+    width: 20px;
+    height: 20px;
+    vertical-align: middle;
+}
+
+.speaker-icon:hover {
+    opacity: 1;
+    transform: scale(1.1);
+    color: var(--highlight-color);
+}
+
+.speaker-icon:active {
+    transform: scale(0.95);
+}
+
+.phonetic-text {
+    font-family: Georgia, "Lucida Sans Unicode", "Arial Unicode MS", serif;
+    color: var(--secondary-text);
+    font-style: italic;
+    font-weight: 400;
+}
+
+/* Exam tags */
+.exam-tags {
+    display: inline-flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    font-size: 0.85em;
+    color: var(--secondary-text);
+    margin-top: 8px;
 }
 
 /* Back side */
 .card-back {
-    margin-top: 20px;
+    margin-top: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+}
+
+.ecdict,
+.examples,
+.discrimination,
+.longman,
+.story {
+    background: transparent;
+    border: none;
+    border-radius: 0;
+    padding: 12px 0;
+    box-shadow: none;
+    color: var(--text-color);
+    margin-bottom: 8px;
+}
+
+/* Further reduce padding for specific sections */
+.story {
+    padding: 8px 0;
 }
 
 .ecdict {
-    margin: 15px 0;
-    text-align: center;
+    text-align: left;
 }
 
 .longman {
-    margin: 15px 0;
+    color: var(--text-color);
 }
 
 .examples {
     color: var(--tertiary-text);
-    margin: 15px 0;
+}
+
+.examples .example-list {
+    list-style: none;
+    padding-left: 0;
+    margin: 4px 0 8px 0;
+}
+
+.examples .example-item {
+    margin: 8px 0;
+    padding: 6px 10px;
+    border-left: 2px solid var(--highlight-color);
+    background: transparent;
+    border-radius: 0;
+    box-shadow: none;
+}
+
+.examples .eng-sentence {
+    color: var(--text-color);
+    font-weight: 500;
+    font-size: 1em;
+    line-height: 1.6;
+}
+
+.examples .cn-sentence {
+    color: var(--secondary-text);
+    margin-top: 2px;
+    font-size: 0.9em;
+    line-height: 1.5;
+}
+
+.examples .sentence-source {
+    color: var(--secondary-text);
+    font-size: 0.85em;
+    margin-top: 2px;
+}
+
+.examples .highlight-word {
+    color: var(--highlight-color);
+    font-weight: 700;
+}
+
+.examples .section-title {
+    color: var(--text-color);
+    font-weight: 700;
+    margin: 12px 0 6px 0;
+    display: block;
+    padding: 0;
+    border-radius: 0;
+    background: transparent;
+    font-size: 1em;
 }
 
 .examples em {
     color: var(--highlight-color);
     font-style: normal;
-    font-weight: bold;
+    font-weight: 600;
 }
 
-.ai {
+.examples .highlight-word {
+    color: var(--highlight-color);
+    font-weight: 600;
+    background: none;
+}
+
+/* Mnemonic sections with distinct styling */
+.etymology,
+.associative_mnemonic,
+.homophone_mnemonic {
+    background: transparent;
+    border-radius: 8px;
+    padding: 12px 16px;
+    margin: 8px 0;
+    box-shadow: none;
+    color: var(--text-color);
+    line-height: 1.8;
+}
+
+/* Section icons styling */
+.section-icon {
+    display: inline-block;
+    margin-right: 4px;
+    font-size: 1em;
+    opacity: 0.8;
+}
+
+/* Hide empty mnemonic sections */
+.etymology:empty,
+.associative_mnemonic:empty,
+.homophone_mnemonic:empty {
+    display: none;
+    margin: 0;
+    padding: 0;
+}
+
+.etymology {
+    border-left: 3px solid var(--etymology-color);
+    background: var(--etymology-bg);
+}
+
+.associative_mnemonic {
+    border-left: 3px solid var(--associative-color);
+    background: var(--associative-bg);
+}
+
+.homophone_mnemonic {
+    border-left: 3px solid var(--homophone-color);
+    background: var(--homophone-bg);
+}
+
+/* Target word highlighting - maximum visibility for ADHD */
+.target-word-highlight {
+    font-weight: 700;
+    background: var(--target-word-bg);
+    color: var(--target-word-color);
+    border-bottom: 2px solid var(--target-word-border);
+    padding: 2px 4px;
+    border-radius: 3px;
+    display: inline-block;
+}
+
+/* Story section styling - more compact */
+.story .story-english {
+    color: var(--text-color);
+    font-weight: 400;
+    line-height: 1.6;
+    margin-bottom: 8px;
+    padding: 0;
+    background: transparent;
+    border-radius: 0;
+    font-size: 1em;
+}
+
+.story .story-chinese {
     color: var(--secondary-text);
-    margin: 15px 0;
+    line-height: 1.6;
+    padding: 0;
+    background: transparent;
+    border-radius: 0;
+    font-size: 0.9em;
+}
+
+/* Hide empty sections to prevent white space */
+.ecdict:empty,
+.story:empty,
+.discrimination:empty,
+.longman:empty,
+.examples:empty {
+    display: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+/* Hide sections with only whitespace or only the title */
+.ecdict:not(:has(*:not(br))):not(:has(text)):empty,
+.story:has(br):not(:has(*:not(br))):empty,
+.discrimination:has(br):not(:has(*:not(br))):empty {
+    display: none !important;
 }
 
 .discrimination {
@@ -206,6 +515,32 @@ class AnkiDeckCreator:
 .chinese {
     color: var(--secondary-text);
     margin-left: 20px;
+}
+
+/* Responsive design for mobile devices */
+@media (max-width: 768px) {
+    .card {
+        width: 100%;
+        padding: 16px 20px;
+        margin: 0;
+        border-radius: 0;
+    }
+    
+    .word-main {
+        font-size: 2.2em;
+    }
+    
+    .card-front {
+        padding: 16px 20px;
+    }
+    
+    .pronunciation-group {
+        font-size: 1em;
+    }
+    
+    .examples .eng-sentence {
+        font-size: 1em;
+    }
 }
             """,
         )
@@ -249,34 +584,131 @@ class AnkiDeckCreator:
         """format youdao example_phrases and example_sentences"""
         result = []
 
+        target_word = data.get("word", "")
+
+        def norm(text: str) -> str:
+            """Trim leading/trailing whitespace to avoid blank head lines."""
+            return text.strip() if isinstance(text, str) else ""
+
+        def highlight_word(text: str) -> str:
+            """Highlight the target word inside example sentences."""
+            if not target_word or not text:
+                return text or ""
+
+            pattern = re.compile(rf"\b{re.escape(target_word)}\b", flags=re.IGNORECASE)
+            return pattern.sub(
+                lambda match: f"<span class='highlight-word'>{match.group(0)}</span>",
+                text,
+            )
+
         # Format phrases if they exist
         if "example_phrases" in data and data["example_phrases"]:
-            result.append("【短语】")
             phrases = []
             for phrase in data["example_phrases"]:
-                formatted_phrase = f"<li><b><span class='phrase-text'>{phrase['english']}</span></b> {phrase['chinese']}</li>"
+                english = highlight_word(norm(phrase.get("english", "")))
+                chinese = norm(phrase.get("chinese", ""))
+                if not english and not chinese:
+                    continue
+                formatted_phrase = (
+                    "<li class='example-item'>"
+                    f"<div class='eng-sentence'><b><span class='phrase-text'>{english}</span></b></div>"
+                    f"<div class='cn-sentence'>{chinese}</div>"
+                    "</li>"
+                )
                 phrases.append(formatted_phrase)
 
-            result.append("".join(phrases))
+            if phrases:
+                result.append("<div class='section-title'>【短语】</div>")
+                result.append(
+                    f"<ul class='example-list phrases'>{''.join(phrases)}</ul>"
+                )
 
         # Format sentences if they exist
         if "example_sentences" in data and data["example_sentences"]:
-            result.append("【例句】")
             phrases = []
             for sentence in data["example_sentences"]:
-                formatted_sentence = f"<li><b><span class='phrase-text'>{sentence['english']}</span></b> {sentence['chinese']}</li>"
+                english = highlight_word(norm(sentence.get("english", "")))
+                chinese = norm(sentence.get("chinese", ""))
+                source = norm(sentence.get("source", ""))
+                if not english and not chinese and not source:
+                    continue
+
+                source_html = (
+                    f"<div class='sentence-source'>{source}</div>" if source else ""
+                )
+
+                formatted_sentence = (
+                    "<li class='example-item'>"
+                    f"<div class='eng-sentence'><b>{english}</b></div>"
+                    f"<div class='cn-sentence'>{chinese}</div>"
+                    f"{source_html}"
+                    "</li>"
+                )
                 phrases.append(formatted_sentence)
 
-            result.append("".join(phrases))
+            if phrases:
+                result.append("<div class='section-title'>【例句】</div>")
+                result.append(
+                    f"<ul class='example-list sentences'>{''.join(phrases)}</ul>"
+                )
 
-        return "<br>".join(result)
+        return "".join(result)
+
+    def highlight_target_word(self, text: str, target_word: str) -> str:
+        """Highlight the target word with maximum visibility for ADHD focus."""
+        if not target_word or not text:
+            return text or ""
+
+        pattern = re.compile(rf"\b({re.escape(target_word)})\b", flags=re.IGNORECASE)
+        return pattern.sub(
+            lambda match: f"<span class='target-word-highlight'>{match.group(0)}</span>",
+            text,
+        )
 
     def add_note(self, data: dict):
+        target_word = data.get("Word", "")
+
+        # Get AI data with highlighting
+        etymology_text = ""
+        if data.get("AI"):
+            etymology_raw = data.get("AI", {}).get("origin", {}).get("etymology", "")
+            etymology_text = f"<span class='section-icon'>📖</span> 【词源】<br>{self.highlight_target_word(etymology_raw, target_word)}"
+
+        associative_text = ""
+        if data.get("AI"):
+            associative_raw = (
+                data.get("AI", {})
+                .get("origin", {})
+                .get("mnemonic", {})
+                .get("associative", "")
+            )
+            associative_text = f"<span class='section-icon'>💭</span> 【联想助记】<br>{self.highlight_target_word(associative_raw, target_word)}"
+
+        homophone_text = ""
+        if data.get("AI"):
+            homophone_raw = (
+                data.get("AI", {})
+                .get("origin", {})
+                .get("mnemonic", {})
+                .get("homophone", "")
+            )
+            homophone_text = f"<span class='section-icon'>🔤</span> 【谐音助记】<br>{self.highlight_target_word(homophone_raw, target_word)}"
+
+        # Story with highlighted target word in English section
+        story_text = ""
+        if data.get("AI"):
+            story_english = data.get("AI", {}).get("story", {}).get("english", "")
+            story_chinese = data.get("AI", {}).get("story", {}).get("chinese", "")
+            story_english_highlighted = self.highlight_target_word(
+                story_english, target_word
+            )
+            story_text = f"【故事】<br><div class='story-english'>{story_english_highlighted}</div><br><div class='story-chinese'>{story_chinese}</div>"
+
         note = genanki.Note(
             model=self.model,
             fields=[
                 # 词头
-                data.get("Word", ""),
+                target_word,
                 # 读音
                 f"[sound:{data.get('Pronunciation', '')}]",
                 # 音标 + 考试大纲 + 语料库词频: [ә'bændәn] (高考 四级 六级 考研 托福 GRE 2057/2182)
@@ -292,24 +724,16 @@ class AnkiDeckCreator:
                 f"【英解】<br>{self.format_pos(data.get('ECDict', {}).get('definition', ''))}",
                 # 有道词典示例短语和句子
                 self.format_youdao(data.get("Youdao", {})),
-                # AI词源、助记
-                ""
-                if not data.get("AI")
-                else f"【词源】<br>{data.get('AI', {}).get('origin', {}).get('etymology', '')}",
-                ""
-                if not data.get("AI")
-                else f"【联想助记】{data.get('AI', {}).get('origin', {}).get('mnemonic', {}).get('associative', '')}",
-                ""
-                if not data.get("AI")
-                else f"【谐音助记】{data.get('AI', {}).get('origin', {}).get('mnemonic', {}).get('homophone', '')}",
+                # AI词源、助记 with emoji icons and word highlighting
+                etymology_text,
+                associative_text,
+                homophone_text,
                 # 词语辨析
                 ""
                 if not data.get("ECDict", {}).get("diffrentiation", "")
                 else f"【辨析】{data.get('ECDict', {}).get('diffrentiation', '')}",
-                # 故事
-                ""
-                if not data.get("AI")
-                else f"【故事】 {data.get('AI', {}).get('story', {}).get('english', '')}<br><br>{data.get('AI', {}).get('story', {}).get('chinese', '')}",
+                # 故事 with word highlighting
+                story_text,
             ],
         )
         self.deck.add_note(note)
