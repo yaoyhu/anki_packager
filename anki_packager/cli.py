@@ -104,13 +104,26 @@ async def main():
     config_path = os.path.join(config_dir, "config")
 
     ## 1. read config.toml
-    with open(os.path.join(config_path, "config.toml"), "rb") as f:
-        cfg = tomllib.load(f)
-        MODEL_PARAM = cfg["MODEL_PARAM"]
-        PROXY = cfg["PROXY"]
-        EUDIC_TOKEN = cfg["EUDIC_TOKEN"]
-        EUDIC_ID = cfg["EUDIC_ID"]
-        DECK_NAME = cfg["DECK_NAME"]
+    config_file = os.path.join(config_path, "config.toml")
+    try:
+        with open(config_file, "rb") as f:
+            cfg = tomllib.load(f)
+    except FileNotFoundError:
+        logger.error(f"配置文件未找到: {config_file}")
+        exit(1)
+    except tomllib.TOMLDecodeError as e:
+        logger.error(f"配置文件格式错误: {e}")
+        exit(1)
+    REQUIRED_KEYS = ("MODEL_PARAM", "PROXY", "EUDIC_TOKEN", "EUDIC_ID", "DECK_NAME")
+    missing = [key for key in REQUIRED_KEYS if key not in cfg]
+    if missing:
+        logger.error(f"配置文件缺少必填项: {', '.join(missing)}")
+        exit(1)
+    MODEL_PARAM = cfg["MODEL_PARAM"]
+    PROXY = cfg["PROXY"]
+    EUDIC_TOKEN = cfg["EUDIC_TOKEN"]
+    EUDIC_ID = cfg["EUDIC_ID"]
+    DECK_NAME = cfg["DECK_NAME"]
 
     logger.info("配置读取完毕")
 
